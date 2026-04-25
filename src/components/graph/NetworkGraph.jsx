@@ -20,106 +20,138 @@ function NetworkGraph({ attendees, connections }) {
 
   const stats = useNetworkStats(attendees, connections);
 
-  useEffect(() => {
-    if (!svgRef.current || !wrapperRef.current) return;
+useEffect(() => {
+  if (!svgRef.current || !wrapperRef.current) return;
 
-    const width = wrapperRef.current.clientWidth;
-    const height = 620;
+  const width = wrapperRef.current.clientWidth;
+  const height = 620;
 
-    const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
-    svg.attr("viewBox", `0 0 ${width} ${height}`);
+  const svg = d3.select(svgRef.current);
+  svg.selectAll("*").remove();
 
-    const linkGroup = svg.append("g");
-    const nodeGroup = svg.append("g");
-    const labelGroup = svg.append("g");
+  svg
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .style("cursor", "grab");
 
-    const links = linkGroup
-      .selectAll("line")
-      .data(graphData.links)
-      .join("line")
-      .attr("stroke", (d) => (d.isCrossSector ? "#22c55e" : "#4b5563"))
-      .attr("stroke-width", (d) => (d.isCrossSector ? 3 : 1.5))
-      .attr("stroke-opacity", 0.85);
+  // Main controllable canvas group
+  const graphGroup = svg.append("g");
 
-    const nodes = nodeGroup
-      .selectAll("circle")
-      .data(graphData.nodes)
-      .join("circle")
-      .attr("r", (d) => 12 + d.connectionCount * 3)
-      .attr("fill", (d) =>
-        rolesRevealed ? roleColors[d.role] : sectorColors[d.sector] || "#e5e7eb"
-      )
-      .attr("stroke", "#ffffff")
-      .attr("stroke-width", 2)
-      .call(
-        d3
-          .drag()
-          .on("start", (event, d) => {
-            if (!event.active) simulationRef.current.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
-          .on("drag", (event, d) => {
-            d.fx = event.x;
-            d.fy = event.y;
-          })
-          .on("end", (event, d) => {
-            if (!event.active) simulationRef.current.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          })
-      );
+  const linkGroup = graphGroup.append("g");
+  const nodeGroup = graphGroup.append("g");
+  const labelGroup = graphGroup.append("g");
 
-    nodes.append("title").text((d) => {
-      return `${d.name} · ${d.company} · ${d.sector}`;
+  // Zoom + pan behavior
+  const zoom = d3
+    .zoom()
+    .scaleExtent([0.25, 4])
+    .on("start", () => {
+      svg.style("cursor", "grabbing");
+    })
+    .on("zoom", (event) => {
+      graphGroup.attr("transform", event.transform);
+    })
+    .on("end", () => {
+      svg.style("cursor", "grab");
     });
 
-    const labels = labelGroup
-      .selectAll("text")
-      .data(graphData.nodes)
-      .join("text")
-      .text((d) => d.name)
-      .attr("font-size", 14)
-      .attr("font-weight", 700)
-      .attr("fill", "#f8fafc")
-      .attr("paint-order", "stroke")
-      .attr("stroke", "#0e0e0c")
-      .attr("stroke-width", 4)
-      .attr("opacity", showNames ? 1 : 0);
+  svg.call(zoom);
 
-    const simulation = d3
-      .forceSimulation(graphData.nodes)
-      .force(
-        "link",
-        d3
-          .forceLink(graphData.links)
-          .id((d) => d.id)
-          .distance(135)
-      )
-      .force("charge", d3.forceManyBody().strength(-480))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force(
-        "collision",
-        d3.forceCollide().radius((d) => 34 + d.connectionCount * 2)
-      );
+  // Optional: start slightly zoomed out
+  svg.call(
+    zoom.transform,
+    d3.zoomIdentity.translate(width * 0.05, height * 0.05).scale(0.9)
+  );
 
-    simulationRef.current = simulation;
+  const links = linkGroup
+    .selectAll("line")
+    .data(graphData.links)
+    .join("line")
+    .attr("stroke", (d) => (d.isCrossSector ? "#22c55e" : "#4b5563"))
+    .attr("stroke-width", (d) => (d.isCrossSector ? 3 : 1.5))
+    .attr("stroke-opacity", 0.85);
 
-    simulation.on("tick", () => {
-      links
-        .attr("x1", (d) => d.source.x)
-        .attr("y1", (d) => d.source.y)
-        .attr("x2", (d) => d.target.x)
-        .attr("y2", (d) => d.target.y);
+  const nodes = nodeGroup
+    .selectAll("circle")
+    .data(graphData.nodes)
+    .join("circle")
+    .attr("r", (d) => 12 + d.connectionCount * 3)
+    .attr("fill", (d) =>
+      rolesRevealed ? roleColors[d.role] : sectorColors[d.sector] || "#e5e7eb"
+    )
+    .attr("stroke", "#ffffff")
+    .attr("stroke-width", 2)
+    .call(
+      d3
+        .drag()
+        .on("start", (event, d) => {
+          event.sourceEvent.stopPropagation();
 
-      nodes.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+          if (!event.active) simulationRef.current.alphaTarget(0.3).restart();
 
-      labels.attr("x", (d) => d.x + 18).attr("y", (d) => d.y + 5);
-    });
+          d.fx = d.x;
+          d.fy = d.y;
+        })
+        .on("drag", (event, d) => {
+          d.fx = event.x;
+          d.fy = event.y;
+        })
+        .on("end", (event, d) => {
+          if (!event.active) simulationRef.current.alphaTarget(0);
 
-    return () => simulation.stop();
-  }, [graphData, showNames, rolesRevealed]);
+          d.fx = null;
+          d.fy = null;
+        })
+    );
+
+  nodes.append("title").text((d) => {
+    return `${d.name} · ${d.company} · ${d.sector}`;
+  });
+
+  const labels = labelGroup
+    .selectAll("text")
+    .data(graphData.nodes)
+    .join("text")
+    .text((d) => d.name)
+    .attr("font-size", 14)
+    .attr("font-weight", 700)
+    .attr("fill", "#f8fafc")
+    .attr("paint-order", "stroke")
+    .attr("stroke", "#0e0e0c")
+    .attr("stroke-width", 4)
+    .attr("opacity", showNames ? 1 : 0);
+
+  const simulation = d3
+    .forceSimulation(graphData.nodes)
+    .force(
+      "link",
+      d3
+        .forceLink(graphData.links)
+        .id((d) => d.id)
+        .distance(135)
+    )
+    .force("charge", d3.forceManyBody().strength(-480))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force(
+      "collision",
+      d3.forceCollide().radius((d) => 34 + d.connectionCount * 2)
+    );
+
+  simulationRef.current = simulation;
+
+  simulation.on("tick", () => {
+    links
+      .attr("x1", (d) => d.source.x)
+      .attr("y1", (d) => d.source.y)
+      .attr("x2", (d) => d.target.x)
+      .attr("y2", (d) => d.target.y);
+
+    nodes.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+
+    labels.attr("x", (d) => d.x + 18).attr("y", (d) => d.y + 5);
+  });
+
+  return () => simulation.stop();
+}, [graphData, showNames, rolesRevealed]);
 
   useEffect(() => {
     d3.select(svgRef.current)

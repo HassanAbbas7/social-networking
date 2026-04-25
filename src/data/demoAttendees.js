@@ -1,50 +1,12 @@
-export const demoAttendees = [
-  {
-    id: "1",
-    name: "Maya",
-    company: "GreenAid",
-    title: "Partnership Lead",
-    sector: "Nonprofit",
-    country: "Netherlands",
-  },
-  {
-    id: "2",
-    name: "Jonas",
-    company: "DataNest",
-    title: "Founder",
+export const demoAttendees = [];
+
+for (let i = 1; i <= 500; i++) {
+  demoAttendees.push({
+    id: String(i),
+    name: `User ${i}`,
+    company: `Company ${i}`,
+    title: "Attendee",
     sector: "Tech",
     country: "Germany",
-  },
-  {
-    id: "3",
-    name: "Sara",
-    company: "Impact Fund",
-    title: "Investor",
-    sector: "Finance",
-    country: "France",
-  },
-  {
-    id: "4",
-    name: "Omar",
-    company: "LearnLab",
-    title: "Program Manager",
-    sector: "Education",
-    country: "UAE",
-  },
-  {
-    id: "5",
-    name: "Nina",
-    company: "FoodBridge",
-    title: "Director",
-    sector: "Nonprofit",
-    country: "Belgium",
-  },
-  {
-    id: "6",
-    name: "Leo",
-    company: "CivicOS",
-    title: "Engineer",
-    sector: "Tech",
-    country: "Netherlands",
-  },
-];
+  });
+}
