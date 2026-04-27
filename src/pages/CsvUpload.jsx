@@ -66,7 +66,7 @@ export default function CsvUploader() {
           const { data, error } = await supabase
             .from(TABLE_NAME)
             .insert(cleanedRows)
-            .select("id, name");
+            .select("*");
 
           if (error) {
             console.error(error);
@@ -98,51 +98,119 @@ export default function CsvUploader() {
     .replace(/^-|-$/g, "");
 }
 
-async function createQrImage({ name, id }) {
+async function createQrImage(profile) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
-  const width = 500;
-  const height = 600;
-  const qrSize = 420;
+  const width = 600;
+  const height = 900;
 
   canvas.width = width;
   canvas.height = height;
 
+  // Background
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width, height);
 
-  ctx.fillStyle = "#111111";
-  ctx.font = "bold 32px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  // --- Sector color mapping ---
+  const sectorColors = {
+    Tech: "#378ADD",
+    Finance: "#7F77DD",
+    Health: "#1D9E75",
+    Energy: "#EF9F27",
+    "Public sector": "#D85A30",
+    Other: "#888780",
+  };
 
-  const maxNameLength = 28;
-  const displayName =
-    name.length > maxNameLength
-      ? name.slice(0, maxNameLength - 3) + "..."
-      : name;
+  const sectorColor = sectorColors[profile.sector] || "#888780";
 
-  ctx.fillText(displayName, width / 2, 55);
+  // --- Left color strip ---
+  ctx.fillStyle = sectorColor;
+  ctx.fillRect(0, 0, 16, height);
 
+  // --- Name split ---
+  const [firstName, ...rest] = profile.name.split(" ");
+  const lastName = rest.join(" ");
+
+  // --- First name (large) ---
+  ctx.fillStyle = "#111";
+  ctx.font = "bold 48px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText(firstName, 40, 90);
+
+  // --- Last name + company ---
+  ctx.font = "24px Arial";
+  ctx.fillStyle = "#444";
+  ctx.fillText(`${lastName} — ${profile.company}`, 40, 140);
+
+  // --- QR Code ---
   const qrCanvas = document.createElement("canvas");
 
-  await QRCode.toCanvas(qrCanvas, QR_BASE_URL + id, {
-    width: qrSize,
-    margin: 2,
-    errorCorrectionLevel: "H",
+  await QRCode.toCanvas(qrCanvas, profile.url, {
+  width: 360,
+  margin: 1,
+  errorCorrectionLevel: "H",
+  color: {
+    dark: sectorColor,
+    light: "#ffffff",
+  },
+});
+
+  const qrX = (width - 360) / 2;
+  const qrY = 220;
+
+  ctx.drawImage(qrCanvas, qrX, qrY);
+
+  const countryCode = profile.country
+  ?.trim()
+  .toLowerCase();
+
+if (countryCode) {
+  const flagImg = new Image();
+  flagImg.crossOrigin = "anonymous";
+  flagImg.src = `/flags/${countryCode}.svg`;
+
+  await new Promise((res) => {
+    flagImg.onload = res;
+    flagImg.onerror = res;
   });
 
-  ctx.drawImage(qrCanvas, 40, 110, qrSize, qrSize);
+  if (flagImg.naturalWidth > 0) {
+    ctx.drawImage(flagImg, width - 110, 42, 70, 46);
+  } else {
+    console.warn("Flag not found:", flagImg.src);
+  }
+}
+  // --- Sector pill (bottom) ---
+  const pillText = profile.sector;
+  ctx.font = "20px Arial";
+
+  const textWidth = ctx.measureText(pillText).width;
+  const pillWidth = textWidth + 40;
+  const pillHeight = 40;
+
+  const pillX = (width - pillWidth) / 2;
+  const pillY = height - 80;
+
+  // pill background
+  ctx.fillStyle = sectorColor;
+  ctx.beginPath();
+  ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 20);
+  ctx.fill();
+
+  // pill text
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(pillText, width / 2, pillY + pillHeight / 2);
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), "image/png");
   });
 }
 
-function QrZipDownloader() {
-
-  async function downloadZip() {
+async function downloadZip() {
+  try {
     setIsGeneratingQr(true);
     setQrProgress("Generating QR codes...");
 
@@ -151,7 +219,10 @@ function QrZipDownloader() {
     for (let i = 0; i < loadedData.length; i++) {
       const item = loadedData[i];
 
-      const imageBlob = await createQrImage(item);
+      const imageBlob = await createQrImage({
+        ...item,
+        url: `${QR_BASE_URL}/profile/${item.id}`,
+      });
 
       zip.file(
         `${String(i + 1).padStart(3, "0")}-${safeFileName(item.name)}.png`,
@@ -170,50 +241,13 @@ function QrZipDownloader() {
 
     saveAs(zipBlob, "qr-codes.zip");
     setQrProgress("Done.");
+  } catch (err) {
+    console.error(err);
+    setQrProgress("Failed to generate ZIP.");
+  } finally {
     setIsGeneratingQr(false);
   }
-
-
-  async function downloadZip() {
-    setIsGeneratingQr(true);
-    setQrProgress("Generating QR codes...");
-
-    const zip = new JSZip();
-
-    for (let i = 0; i < loadedData.length; i++) {
-      const item = loadedData[i];
-
-      const imageBlob = await createQrImage(item);
-
-      zip.file(
-        `${String(i + 1).padStart(3, "0")}-${safeFileName(item.name)}.png`,
-        imageBlob
-      );
-
-      setQrProgress(`Generated ${i + 1} of ${loadedData.length}`);
-    }
-
-    setQrProgress("Creating ZIP...");
-
-    const zipBlob = await zip.generateAsync({
-      type: "blob",
-      compression: "DEFLATE",
-    });
-
-    saveAs(zipBlob, "qr-codes.zip");
-    setQrProgress("Done.");
-    setIsGeneratingQr(false);
-  }
-
-    try {
-        downloadZip();
-    } catch (err) {
-        console.error(err);
-        setQrProgress("Failed to generate ZIP.");
-        setIsGeneratingQr(false);
-    }
-  }
-
+}
   return (
   <div className="mx-auto max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
     <div className="space-y-2">
@@ -261,7 +295,7 @@ function QrZipDownloader() {
 
           <button
             type="button"
-            onClick={QrZipDownloader}
+            onClick={downloadZip}
             disabled={isGeneratingQr}
             className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
