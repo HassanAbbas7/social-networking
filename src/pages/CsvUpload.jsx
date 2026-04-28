@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import QRCode from "qrcode";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import SingleUpload from "../components/common/SingleUpload";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -13,11 +14,10 @@ const supabase = createClient(
 
 
 
-
-
 export default function CsvUploader() {
   const [status, setStatus] = useState("");
   const [loadedData, setLoadedData] = useState(null);
+
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [qrProgress, setQrProgress] = useState("");
 
@@ -33,6 +33,7 @@ export default function CsvUploader() {
       complete: async (results) => {
         try {
           const rows = results.data;
+        
 
           if (!rows.length) {
             setStatus("CSV is empty.");
@@ -221,7 +222,7 @@ async function downloadZip() {
 
       const imageBlob = await createQrImage({
         ...item,
-        url: `${QR_BASE_URL}/profile/${item.id}`,
+        url: `${QR_BASE_URL}${item.id}`,
       });
 
       zip.file(
@@ -310,6 +311,20 @@ async function downloadZip() {
         )}
       </div>
     )}
+
+    <div className="flex items-center w-full max-w-6xl mx-auto my-20">
+  <div className="flex-grow h-px bg-gradient-to-r from-transparent via-purple-400/60 to-purple-400/30" />
+  
+  <span className="px-4 text-sm text-gray-500 whitespace-nowrap">
+    OR
+  </span>
+  
+  <div className="flex-grow h-px bg-gradient-to-r from-purple-400/30 via-purple-400/60 to-transparent" />
+</div>
+
+
+
+    <SingleUpload createQrImage={createQrImage} safeFileName={safeFileName} />
   </div>
 );
 }
