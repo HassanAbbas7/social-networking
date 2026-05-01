@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Html5Qrcode } from "html5-qrcode";
 
-export default function IdentitySelect({ onSave }) {
+export default function IdentitySelect() {
   const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL,
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -14,6 +14,10 @@ export default function IdentitySelect({ onSave }) {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
 
+
+  const onSave = (profile) => {
+    localStorage.setItem("profile", JSON.stringify(profile));
+  }
   useEffect(() => {
     async function fetchAttendees() {
       const { data, error } = await supabase
@@ -44,17 +48,19 @@ export default function IdentitySelect({ onSave }) {
   const handleContinue = () => {
     if (!selectedAttendee) return;
 
-    const profileData = {
-      id: selectedAttendee.id,
-      slug: selectedAttendee.slug,
-      name: selectedAttendee.name,
-      company: selectedAttendee.company,
-      title: selectedAttendee.title,
-      photo_url: selectedAttendee.photo_url,
-    };
+    // const profileData = {
+    //   id: selectedAttendee.id,
+    //   slug: selectedAttendee.slug,
+    //   name: selectedAttendee.name,
+    //   company: selectedAttendee.company,
+    //   title: selectedAttendee.title,
+    //   photo_url: selectedAttendee.photo_url,
+    // };
 
-    localStorage.setItem("profile", JSON.stringify(profileData));
-    onSave(profileData);
+    // localStorage.setItem("profile", JSON.stringify(profileData));
+    // onSave(profileData);
+    // redirect
+    window.location.href = `/connect/${selectedAttendee.slug}`;
   };
 
   // QR Scanner logic
@@ -134,7 +140,7 @@ export default function IdentitySelect({ onSave }) {
               className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 disabled:bg-neutral-100"
             />
 
-            {!loading && search && filteredAttendees.length > 0 && (
+            {!loading && search && filteredAttendees.length && !selectedAttendee > 0 && (
               <div className="max-h-56 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
                 {filteredAttendees.map((attendee) => (
                   <button

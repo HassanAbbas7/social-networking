@@ -12,7 +12,7 @@ export const expectedColumns = [
 
 export const DEVELOPER_MODE = true;
 
-export const QR_BASE_URL = "https://networking-map.netlify.app/profile/"
+export const QR_BASE_URL = "https://networking-map.netlify.app/connect/"
 
 
 export const TABLE_NAME = "attendees";

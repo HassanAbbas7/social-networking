@@ -1,6 +1,8 @@
 import ProfilePage from "./Profile";
 import IdentitySelect from "../pages/IdentitySelect";
+import IdnetityConfirm from "./IdentityConfirm";
 import { useEffect, useState } from "react";
+import IdentityConfirm from "./IdentityConfirm";
 
 export default function ConnectPage() {
   const path = window.location.pathname;
@@ -17,7 +19,7 @@ export default function ConnectPage() {
   }, []);
 
   if (!profile) {
-    return <IdentitySelect onSave={setProfile} />;
+    return <IdentityConfirm slug={slug} />;
   }
 
   return <ProfilePage slug={slug} profile={profile} />;
