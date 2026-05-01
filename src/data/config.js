@@ -5,7 +5,8 @@ export const expectedColumns = [
   "title",
   "sector",
   "country",
-  "linkedin"
+  "linkedin_url",
+  "photo_url"
 ];
 
 

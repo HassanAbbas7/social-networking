@@ -11,6 +11,7 @@ const supabase = createClient(
 
 
 
+
 export default function SingleUpload({createQrImage, safeFileName}) {
   const initialForm = useMemo(() => {
     return expectedColumns.reduce((acc, column) => {
@@ -18,6 +19,8 @@ export default function SingleUpload({createQrImage, safeFileName}) {
       return acc;
     }, {});
   }, []);
+
+  const [data, setData] = useState(null);
 
   const [formData, setFormData] = useState(initialForm);
   const [status, setStatus] = useState("");
@@ -54,19 +57,21 @@ export default function SingleUpload({createQrImage, safeFileName}) {
         return;
       }
 
+      setData(data);
+
       setStatus("Entry uploaded. Generating QR image...");
 
-      const imageBlob = await createQrImage({
-        ...data,
-        url: `${QR_BASE_URL}${data.id}`,
-      });
+      // const imageBlob = await createQrImage({
+      //   ...data,
+      //   url: `${QR_BASE_URL}${data.slug}`,
+      // });
 
-      saveAs(imageBlob, `${safeFileName(data.name)}.png`);
-      setStatus("Entry uploaded and QR image downloaded.");
+      // saveAs(imageBlob, `${safeFileName(data.name)}.png`);
+      setStatus("Entry uploaded!");
       setFormData(initialForm);
     } catch (err) {
       console.error(err);
-      setStatus("Something went wrong while uploading or generating the QR image.");
+      setStatus("Failed. Something went wrong while uploading or generating the QR image.");
     } finally {
       setIsUploading(false);
     }
@@ -99,16 +104,27 @@ export default function SingleUpload({createQrImage, safeFileName}) {
         ))}
 
         <button
-          type="submit"
-          disabled={isUploading}
+          type={!data ? "submit" : "button"}
+          onClick={async () => {
+            if (!data) return;
+            const imageBlob = await createQrImage({
+              ...data,
+              url: `${QR_BASE_URL}${data.slug}`,
+            });
+
+            saveAs(imageBlob, `${safeFileName(data.name)}.png`);
+            setFormData(initialForm);
+            setData(null);
+          }}
+
           className="w-full rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isUploading ? "Uploading..." : "Upload Entry & Download QR"}
+          {isUploading && !data ? "Uploading..." : data ? "Download QR" : "Upload Entry & Download QR"}
         </button>
       </form>
 
       {status && (
-        <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700" style={{ backgroundColor: status.includes("failed") ? "#FDE2E1" : "#E6F4EA", color: status.includes("failed") ? "#D93025" : "#137333" }}>
           {status}
         </div>
       )}

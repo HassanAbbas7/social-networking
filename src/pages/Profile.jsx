@@ -7,19 +7,16 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 );
 
-export default function ProfilePage() {
+export default function ProfilePage({slug}) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const path = window.location.pathname;
-  const id = path.split("/profile/")[1];
 
   useEffect(() => {
     async function fetchProfile() {
       const { data, error } = await supabase
         .from(TABLE_NAME)
         .select("*")
-        .eq("id", id)
+        .eq("slug", slug)
         .single();
 
       if (error) {
@@ -32,8 +29,8 @@ export default function ProfilePage() {
       setLoading(false);
     }
 
-    if (id) fetchProfile();
-  }, [id]);
+    if (slug) fetchProfile();
+  }, [slug]);
 
   if (loading) {
     return (
@@ -125,7 +122,7 @@ export default function ProfilePage() {
         onClick={() => window.open(profile.linkedin, "_blank")}
         className="mt-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition duration-300 shadow-md hover:shadow-lg"
       >
-        Connect on LinkedIn
+        Connect
       </button>
     </div>
   </div>

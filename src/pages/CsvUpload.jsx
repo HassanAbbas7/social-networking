@@ -7,6 +7,7 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import SingleUpload from "../components/common/SingleUpload";
 
+
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -80,7 +81,7 @@ export default function CsvUploader() {
             setLoadedData(data);
         } catch (err) {
           console.error(err);
-          setStatus("Something went wrong while uploading.");
+          setStatus("Upload failed, Something went wrong while uploading.");
         }
       },
       error: (error) => {
@@ -222,7 +223,7 @@ async function downloadZip() {
 
       const imageBlob = await createQrImage({
         ...item,
-        url: `${QR_BASE_URL}${item.id}`,
+        url: `${QR_BASE_URL}${item.slug}`,
       });
 
       zip.file(
@@ -277,7 +278,7 @@ async function downloadZip() {
     </label>
 
     {status && (
-      <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+      <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700" style={{ backgroundColor: status.includes("failed") ? "#FDE2E1" : "#E6F4EA", color: status.includes("failed") ? "#D93025" : "#137333" }}>
         {status}
       </div>
     )}
