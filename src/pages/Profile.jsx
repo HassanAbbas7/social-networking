@@ -7,6 +7,7 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 );
 
+
 function getCurrentUserSlug() {
   try {
     const rawProfile = localStorage.getItem("profile");
@@ -47,6 +48,8 @@ function getCurrentUserSlug() {
 export default function ProfilePage({ slug }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+const [connectClicked, setConnectClicked] = useState(false);
 
   const currentUserSlug = useMemo(() => getCurrentUserSlug(), []);
 
@@ -110,6 +113,15 @@ export default function ProfilePage({ slug }) {
       </div>
     );
   }
+
+  const handleConnectClick = () => {
+    setConnectClicked(true);
+    setTimeout(() => {
+      if (profile.linkedin_url || profile.linkedin) {
+        window.open(profile.linkedin_url || profile.linkedin, "_blank");
+      }
+    }, 2000);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
@@ -175,12 +187,13 @@ export default function ProfilePage({ slug }) {
 
         {(profile.linkedin_url || profile.linkedin) && (
           <button
-            onClick={() =>
-              window.open(profile.linkedin_url || profile.linkedin, "_blank")
-            }
+            onClick={handleConnectClick}
+            style={{
+              backgroundColor: connectClicked ? "#16a34a" : "#4f46e5",
+            }}
             className="mt-8 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition duration-300 shadow-md hover:shadow-lg"
           >
-            Connect with {profile.name.split(" ")[0]}
+            {!connectClicked? `Connect with ${profile.name.split(" ")[0]}` : `Connected — connection 7 of your day`}
           </button>
         )}
       </div>

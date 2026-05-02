@@ -251,81 +251,103 @@ async function downloadZip() {
   }
 }
   return (
-  <div className="mx-auto max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-    <div className="space-y-2">
-      <h2 className="text-xl font-semibold text-gray-900">
-        Upload CSV
-      </h2>
-      <p className="text-sm text-gray-500">
-        Upload a CSV with column names matching your Supabase table.
-      </p>
-    </div>
+  <main className="min-h-screen bg-gray-50 px-6">
+    <div className="mx-auto max-w-7xl">
+      {/* <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">
+          Upload Attendees
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Add attendees in bulk with CSV or create one record manually.
+        </p>
+      </div> */}
 
-    <label className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center transition hover:border-gray-400 hover:bg-gray-100">
-      <span className="text-sm font-medium text-gray-700">
-        Click to upload CSV
-      </span>
-      <span className="mt-1 text-xs text-gray-500">
-        Only .csv files are supported
-      </span>
-
-      <input
-        type="file"
-        accept=".csv"
-        onChange={handleFileUpload}
-        className="hidden"
-      />
-    </label>
-
-    {status && (
-      <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700" style={{ backgroundColor: status.includes("failed") ? "#FDE2E1" : "#E6F4EA", color: status.includes("failed") ? "#D93025" : "#137333" }}>
-        {status}
-      </div>
-    )}
-
-    {loadedData?.length > 0 && (
-      <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-gray-900">
-              Data loaded
-            </p>
-            <p className="text-xs text-gray-500">
-              {loadedData.length} rows are ready for QR generation.
+      <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-gray-900">
+              CSV Upload
+            </h2>
+            <p className="text-sm text-gray-500">
+              Upload a CSV with columns matching your Supabase table.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={downloadZip}
-            disabled={isGeneratingQr}
-            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isGeneratingQr ? "Generating..." : "Generate QR ZIP"}
-          </button>
-        </div>
+          <label className="mt-6 flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center transition hover:border-gray-400 hover:bg-gray-100">
+            <span className="text-sm font-medium text-gray-700">
+              Click to upload CSV
+            </span>
+            <span className="mt-1 text-xs text-gray-500">
+              Only .csv files are supported
+            </span>
 
-        {qrProgress && (
-          <p className="mt-3 text-xs text-gray-500">
-            {qrProgress}
-          </p>
-        )}
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </label>
+
+          {status && (
+            <div
+              className="mt-4 rounded-lg px-4 py-3 text-sm"
+              style={{
+                backgroundColor:
+                  status.toLowerCase().includes("failed") ||
+                  status.toLowerCase().includes("missing") ||
+                  status.toLowerCase().includes("empty")
+                    ? "#FDE2E1"
+                    : "#E6F4EA",
+                color:
+                  status.toLowerCase().includes("failed") ||
+                  status.toLowerCase().includes("missing") ||
+                  status.toLowerCase().includes("empty")
+                    ? "#D93025"
+                    : "#137333",
+              }}
+            >
+              {status}
+            </div>
+          )}
+
+          {loadedData?.length > 0 && (
+            <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    Data loaded
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {loadedData.length} rows are ready for QR generation.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={downloadZip}
+                  disabled={isGeneratingQr}
+                  className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isGeneratingQr ? "Generating..." : "Generate QR ZIP"}
+                </button>
+              </div>
+
+              {qrProgress && (
+                <p className="mt-3 text-xs text-gray-500">{qrProgress}</p>
+              )}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <SingleUpload
+            createQrImage={createQrImage}
+            safeFileName={safeFileName}
+          />
+        </section>
       </div>
-    )}
-
-    <div className="flex items-center w-full max-w-6xl mx-auto my-20">
-  <div className="flex-grow h-px bg-gradient-to-r from-transparent via-purple-400/60 to-purple-400/30" />
-  
-  <span className="px-4 text-sm text-gray-500 whitespace-nowrap">
-    OR
-  </span>
-  
-  <div className="flex-grow h-px bg-gradient-to-r from-purple-400/30 via-purple-400/60 to-transparent" />
-</div>
-
-
-
-    <SingleUpload createQrImage={createQrImage} safeFileName={safeFileName} />
-  </div>
+    </div>
+  </main>
 );
 }
