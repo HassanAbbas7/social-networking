@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import { QR_BASE_URL } from "../data/config";
+import { createBadgePng } from "../utils/badgeExporter";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -23,105 +24,6 @@ export default function RecordsPage() {
     fetchRecords();
   }, []);
 
-  async function createQrImage(profile) {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    const width = 600;
-    const height = 900;
-
-    canvas.width = width;
-    canvas.height = height;
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-
-    const sectorColors = {
-      Tech: "#378ADD",
-      Finance: "#7F77DD",
-      Health: "#1D9E75",
-      Energy: "#EF9F27",
-      "Public sector": "#D85A30",
-      Other: "#888780",
-    };
-
-    const sectorColor = sectorColors[profile.sector] || "#888780";
-
-    ctx.fillStyle = sectorColor;
-    ctx.fillRect(0, 0, 16, height);
-
-    const [firstName, ...rest] = (profile.name || "Unknown").split(" ");
-    const lastName = rest.join(" ");
-
-    ctx.fillStyle = "#111";
-    ctx.font = "bold 48px Arial";
-    ctx.textAlign = "left";
-    ctx.fillText(firstName, 40, 90);
-
-    ctx.font = "24px Arial";
-    ctx.fillStyle = "#444";
-    ctx.fillText(`${lastName} — ${profile.company || ""}`, 40, 140);
-
-    const qrCanvas = document.createElement("canvas");
-
-    await QRCode.toCanvas(qrCanvas, profile.url, {
-      width: 360,
-      margin: 1,
-      errorCorrectionLevel: "H",
-      color: {
-        dark: sectorColor,
-        light: "#ffffff",
-      },
-    });
-
-    const qrX = (width - 360) / 2;
-    const qrY = 220;
-
-    ctx.drawImage(qrCanvas, qrX, qrY);
-
-    const countryCode = profile.country?.trim().toLowerCase();
-
-    if (countryCode) {
-      const flagImg = new Image();
-      flagImg.crossOrigin = "anonymous";
-      flagImg.src = `/flags/${countryCode}.svg`;
-
-      await new Promise((res) => {
-        flagImg.onload = res;
-        flagImg.onerror = res;
-      });
-
-      if (flagImg.naturalWidth > 0) {
-        ctx.drawImage(flagImg, width - 110, 42, 70, 46);
-      } else {
-        console.warn("Flag not found:", flagImg.src);
-      }
-    }
-
-    const pillText = profile.sector || "Other";
-    ctx.font = "20px Arial";
-
-    const textWidth = ctx.measureText(pillText).width;
-    const pillWidth = textWidth + 40;
-    const pillHeight = 40;
-
-    const pillX = (width - pillWidth) / 2;
-    const pillY = height - 80;
-
-    ctx.fillStyle = sectorColor;
-    ctx.beginPath();
-    ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 20);
-    ctx.fill();
-
-    ctx.fillStyle = "#fff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(pillText, width / 2, pillY + pillHeight / 2);
-
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), "image/png");
-    });
-  }
 
   function safeFileName(name) {
     return String(name || "record")
@@ -132,7 +34,7 @@ export default function RecordsPage() {
   }
 
   async function handleGenerateQR(record) {
-    const imageBlob = await createQrImage({
+    const imageBlob = await createBadgePng({
       ...record,
       url: `${QR_BASE_URL}${record.slug}`,
     });
@@ -152,7 +54,7 @@ export default function RecordsPage() {
       for (let i = 0; i < records.length; i++) {
         const record = records[i];
 
-        const imageBlob = await createQrImage({
+        const imageBlob = await createBadgePng({
           ...record,
           url: `${QR_BASE_URL}${record.slug}`,
         });

@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
-import { expectedColumns, TABLE_NAME, QR_BASE_URL, sectorOptions, countryOptions } from "../../data/config";
+import { expectedColumns, TABLE_NAME, QR_BASE_URL, DEVELOPER_MODE, sectorOptions, countryOptions } from "../../data/config";
 import { createClient } from "@supabase/supabase-js";
 import { saveAs } from "file-saver";
+import { createBadgePng } from "../../utils/badgeExporter";
+import { exportBadgeToA6Docx } from "../../utils/docxMaker";
+
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -9,8 +12,19 @@ const supabase = createClient(
 );
 
 
-export default function SingleUpload({ createQrImage, safeFileName }) {
+export default function SingleUpload({ safeFileName }) {
   const initialForm = useMemo(() => {
+
+    if (DEVELOPER_MODE){
+      return {
+        name: "Hassan Abbas",
+        country: "pk",
+        company: "ABC",
+        sector: "Tech",
+        title: "Programmer",
+        linkedin_url: "linkedin.com"
+      }
+    }
     return expectedColumns.reduce((acc, column) => {
       acc[column] = "";
       return acc;
@@ -18,12 +32,16 @@ export default function SingleUpload({ createQrImage, safeFileName }) {
   }, []);
 
   const [data, setData] = useState(null);
+  const [editingForm, setEditingForm] = useState(false);
   const [formData, setFormData] = useState(initialForm);
   const [status, setStatus] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloadingQr, setIsDownloadingQr] = useState(false);
 
   function handleChange(column, value) {
+    console.log("changing form data");
+    setData(null);
+    console.log(data);
     setFormData((current) => ({
       ...current,
       [column]: value,
@@ -86,10 +104,11 @@ export default function SingleUpload({ createQrImage, safeFileName }) {
       setIsDownloadingQr(true);
       setStatus("Generating QR image...");
 
-      const imageBlob = await createQrImage({
+      const imageBlob = await createBadgePng({
         ...data,
         url: `${QR_BASE_URL}${data.slug}`,
       });
+      // await exportBadgeToA6Docx(imageBlob, `${data.name}-badge.docx`);
 
       saveAs(imageBlob, `${safeFileName(data.name)}.png`);
       setStatus("QR downloaded.");
@@ -210,7 +229,7 @@ export default function SingleUpload({ createQrImage, safeFileName }) {
             {isUploading ? "Uploading..." : "Upload Entry"}
           </button>}
 
-          {data && <button
+          {(data) && <button
             type="button"
             onClick={handleDownloadQr}
             disabled={!data || isUploading || isDownloadingQr}

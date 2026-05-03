@@ -87,7 +87,7 @@ if (confirmed) {
                     Welcome, {profile.name}!
                 </h1>
                 <p className="mt-2 text-sm text-neutral-500">
-                    You can close this window now.
+                    You’re all set. Start making connections by scanning others’ QR codes.
                 </p>    
             </div>
         </div>

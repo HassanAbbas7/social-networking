@@ -5,12 +5,14 @@ import RecordsPage from "./pages/RecordsPage";
 import ConnectPage from "./pages/Connect";
 import IdentitySelect from "./pages/IdentitySelect";
 import AdminLayout from "./layouts/AdminLayout";
+import Logo from "./pages/test";
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<ScreenPage />} />
+        {/* <Route path="/" element={<ScreenPage />} /> */}
+        {/* <Route path="/" element={<Logo/>} /> */}
         <Route path="/connect/:slug" element={<ConnectPage />} />
         <Route path="/identity" element={<IdentitySelect />} />
 
