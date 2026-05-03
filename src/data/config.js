@@ -245,7 +245,7 @@ export const countryMap = {
 }
 export const DEVELOPER_MODE = false;
 
-export const QR_BASE_URL = "https://buildingecosystems.app/connect/"
+export const QR_BASE_URL = "https://buildingecosystems.netlify.app/connect/"
 
 export const SECTOR_CONFIG = {
   Tech: { color: "#378ADD", light: "#EBF4FF" },
