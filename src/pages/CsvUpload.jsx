@@ -7,7 +7,6 @@ import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { createBadgePng } from "../utils/badgeExporter";
 import SingleUpload from "../components/common/SingleUpload";
-import { exportBadgeToA6Docx } from "../utils/docxMaker";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
