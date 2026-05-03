@@ -3,7 +3,6 @@ import { expectedColumns, TABLE_NAME, QR_BASE_URL, DEVELOPER_MODE, sectorOptions
 import { createClient } from "@supabase/supabase-js";
 import { saveAs } from "file-saver";
 import { createBadgePng } from "../../utils/badgeExporter";
-import { exportBadgeToA6Docx } from "../../utils/docxMaker";
 
 
 const supabase = createClient(
