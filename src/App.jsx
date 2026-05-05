@@ -12,6 +12,7 @@ import { DEVELOPER_MODE } from "./data/config";
 const OpenLinkedInButtonPage = () => {
 
   function openLinkedIn(input) {
+    localStorage.clear(); // Clear localStorage to reset state for next profile
     const isAndroid = /android/i.test(navigator.userAgent);
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 

@@ -97,6 +97,7 @@ export default function ProfileScreen({ profile, onConnect, connecting }) {
 
   const handleConnect = async () => {
     if (connecting) return;
+    
     await onConnect(profile);
   };
 
