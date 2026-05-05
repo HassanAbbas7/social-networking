@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useState } from "react";
 import ScreenPage from "./pages/ScreenPage";
 import CsvUploader from "./pages/CsvUpload";
 import RecordsPage from "./pages/RecordsPage";
@@ -64,7 +65,7 @@ const OpenLinkedInButtonPage = () => {
   }
 
   // ✅ Fix: use a button + controlled input, not onChange
-  const [value, setValue] = React.useState("");
+  const [value, setValue] = useState("");
 
   return (
     <div>
