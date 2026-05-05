@@ -23,13 +23,18 @@ function Flag({ country, size = 24 }) {
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
-function Avatar({ name, size = 88 }) {
+function Avatar({ name, photoUrl, size = 96 }) {
   const initials = name
     ?.split(" ")
-    .map(w => w[0])
-    .slice(0, 2)
+    .filter(Boolean)
+    .map((part) => part[0])
     .join("")
+    .slice(0, 2)
     .toUpperCase();
+
+  const [imageError, setImageError] = React.useState(false);
+
+  const showImage = photoUrl && !imageError;
 
   return (
     <div
@@ -37,22 +42,36 @@ function Avatar({ name, size = 88 }) {
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "linear-gradient(135deg, #00808022 0%, #00808044 100%)",
-        border: "3px solid #00808030",
+        overflow: "hidden",
+        background: "#008080",
+        color: "#FFF",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         fontSize: size * 0.34,
         fontWeight: 700,
-        color: "#008080",
-        fontFamily: "'DM Serif Display', serif",
+        border: "4px solid #FFF",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
       }}
     >
-      {initials}
+      {showImage ? (
+        <img
+          src={photoUrl}
+          alt={name || "Profile photo"}
+          onError={() => setImageError(true)}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      ) : (
+        initials || "?"
+      )}
     </div>
   );
 }
-
 // ─── Spinner ──────────────────────────────────────────────────────────────────
 function Spinner() {
   return (
@@ -125,7 +144,7 @@ export default function ProfileScreen({ profile, onConnect, connecting }) {
         <div style={{ padding: "32px 28px 0" }}>
           {/* Avatar */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}>
-            <Avatar name={profile.name} size={96} />
+            <Avatar name={profile.name} photoUrl={profile.photo_url} size={96} />
           </div>
 
           {/* Name */}
