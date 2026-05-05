@@ -10,7 +10,6 @@ const SECTOR_CONFIG = {
 };
 
 function openLinkedIn(input) {
-    localStorage.clear(); // Clear localStorage to reset state for next profile
     const isAndroid = /android/i.test(navigator.userAgent);
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
@@ -89,17 +88,19 @@ export default function SuccessScreen({ profile, connectionCount, onReset }) {
   }, []);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "40px 28px",
-        background: "#F8F7F4",
-      }}
-    >
+  <div
+    style={{
+      minHeight: "100dvh",
+      width: "100%",
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "40px 28px",
+      background: "#F8F7F4",
+    }}
+  >
       {/* Check circle */}
       <div
         style={{
