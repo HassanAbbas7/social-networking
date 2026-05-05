@@ -9,7 +9,7 @@ const SECTOR_CONFIG = {
   Other: { color: "#7A7A78", light: "#F2F2F1" },
 };
 
-  function openLinkedIn(input) {
+function openLinkedIn(input) {
     localStorage.clear(); // Clear localStorage to reset state for next profile
     const isAndroid = /android/i.test(navigator.userAgent);
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -80,7 +80,7 @@ export default function SuccessScreen({ profile, connectionCount, onReset }) {
 
       if (remaining <= 0) {
         clearInterval(t);
-        openLinkedIn(profile.linkedin);
+        openLinkedIn(profile.linkedinـurl);
         // window.location.href = deepLink;
       }
     }, 50);
