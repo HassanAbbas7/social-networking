@@ -9,66 +9,59 @@ const SECTOR_CONFIG = {
   Other: { color: "#7A7A78", light: "#F2F2F1" },
 };
 
-function openLinkedIn(input) {
-  const isAndroid = /android/i.test(navigator.userAgent);
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  function openLinkedIn(input) {
+    localStorage.clear(); // Clear localStorage to reset state for next profile
+    const isAndroid = /android/i.test(navigator.userAgent);
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
-  const getSlug = (value) => {
-    if (!value) return "";
+    const getSlug = (value) => {
+      if (!value) return "";
+      const trimmed = String(value).trim();
 
-    const trimmed = String(value).trim();
-
-    // If someone still passes just the slug, support that too.
-    if (!/^https?:\/\//i.test(trimmed) && !/^www\./i.test(trimmed)) {
-      return trimmed.replace(/^\/+|\/+$/g, "");
-    }
-
-    try {
-      const url = new URL(
-        /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
-      );
-
-      const parts = url.pathname.split("/").filter(Boolean);
-
-      // Handles:
-      // https://www.linkedin.com/in/some-slug
-      // https://linkedin.com/in/some-slug/
-      const inIndex = parts.findIndex((part) => part.toLowerCase() === "in");
-
-      if (inIndex !== -1 && parts[inIndex + 1]) {
-        return decodeURIComponent(parts[inIndex + 1]);
+      if (!/^https?:\/\//i.test(trimmed) && !/^www\./i.test(trimmed)) {
+        return trimmed.replace(/^\/+|\/+$/g, "");
       }
 
-      return "";
-    } catch {
-      return "";
-    }
-  };
+      try {
+        const url = new URL(
+          /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+        );
+        const parts = url.pathname.split("/").filter(Boolean);
+        const inIndex = parts.findIndex((p) => p.toLowerCase() === "in");
+        if (inIndex !== -1 && parts[inIndex + 1]) {
+          return decodeURIComponent(parts[inIndex + 1]);
+        }
+        return "";
+      } catch {
+        return "";
+      }
+    };
 
-  const slug = getSlug(input);
+    const slug = getSlug(input);
+    if (!slug) return;
 
-  if (!slug) {
-    console.warn("Invalid LinkedIn profile URL or slug:", input);
-    return;
-  }
+    const webURL = `https://www.linkedin.com/in/${encodeURIComponent(slug)}`;
 
-  const webURL = `https://www.linkedin.com/in/${encodeURIComponent(slug)}`;
-
-  if (isAndroid) {
-    window.location.href =
-      `intent://in/${encodeURIComponent(slug)}` +
-      `#Intent;scheme=linkedin;package=com.linkedin.android;` +
-      `S.browser_fallback_url=${encodeURIComponent(webURL)};end`;
-  } else if (isIOS) {
-    window.location.href = `linkedin://in/${encodeURIComponent(slug)}`;
-
-    setTimeout(() => {
+    if (isAndroid) {
+      // ✅ Fix: use www.linkedin.com as the host in the intent URI
+      window.location.href =
+        `intent://www.linkedin.com/in/${encodeURIComponent(slug)}` +
+        `#Intent;` +
+        `action=android.intent.action.VIEW;` +
+        `category=android.intent.category.BROWSABLE;` +
+        `scheme=https;` +
+        `package=com.linkedin.android;` +
+        `S.browser_fallback_url=${encodeURIComponent(webURL)};` +
+        `end`;
+    } else if (isIOS) {
+      window.location.href = `linkedin://in/${encodeURIComponent(slug)}`;
+      setTimeout(() => {
+        window.location.href = webURL;
+      }, 1500);
+    } else {
       window.location.href = webURL;
-    }, 1500);
-  } else {
-    window.location.href = webURL;
+    }
   }
-}
 
 const DURATION = 4;
 
