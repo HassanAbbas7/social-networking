@@ -28,10 +28,10 @@ function getCurrentUserSlug() {
 }
 
 export default function ProfilePage({ slug }) {
-  const [profile, setProfile]           = useState(null);
+  const [profile, setProfile] = useState(null);
   const [attendeeList, setAttendeeList] = useState([]);
-  const [screen, setScreen]             = useState("loading");  // loading | profile | success | self | duplicate | notFound | notActivated
-  const [connecting, setConnecting]     = useState(false);
+  const [screen, setScreen] = useState("loading");  // loading | profile | success | self | duplicate | notFound | notActivated
+  const [connecting, setConnecting] = useState(false);
   const [connectionCount, setConnectionCount] = useState(0);
 
   const currentUserSlug = useMemo(() => getCurrentUserSlug(), []);
@@ -69,8 +69,9 @@ export default function ProfilePage({ slug }) {
         const { data: existing } = await supabase
           .from(CONNECTIONS_TABLE)
           .select("id")
-          .eq("scanner_id", currentUser.id)
-          .eq("scanned_id", scannedProfile.id)
+          .or(
+            `and(scanner_id.eq.${currentUser.id},scanned_id.eq.${scannedProfile.id}),and(scanner_id.eq.${scannedProfile.id},scanned_id.eq.${currentUser.id})`
+          )
           .maybeSingle();
 
         if (existing) { setScreen("duplicate"); return; }
@@ -125,7 +126,7 @@ export default function ProfilePage({ slug }) {
           borderTopColor: "#008080",
           borderRadius: "50%",
           animation: "spin 0.7s linear infinite",
-        }}/>
+        }} />
       </div>
     );
   }

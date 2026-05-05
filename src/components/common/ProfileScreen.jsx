@@ -122,7 +122,7 @@ export default function ProfileScreen({ profile, onConnect, connecting }) {
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, padding: "32px 28px 0" }}>
+        <div style={{ padding: "32px 28px 0" }}>
           {/* Avatar */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 22 }}>
             <Avatar name={profile.name} size={96} />
