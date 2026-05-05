@@ -80,7 +80,7 @@ export default function SuccessScreen({ profile, connectionCount, onReset }) {
 
       if (remaining <= 0) {
         clearInterval(t);
-        openLinkedIn(profile.linkedinـurl);
+        openLinkedIn(profile.linkedin_url);
         // window.location.href = deepLink;
       }
     }, 50);
