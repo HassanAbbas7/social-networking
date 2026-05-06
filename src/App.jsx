@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ScreenPage from "./pages/ScreenPage";
 import CsvUploader from "./pages/CsvUpload";
 import RecordsPage from "./pages/RecordsPage";
@@ -85,10 +85,25 @@ const OpenLinkedInButtonPage = () => {
 };
 
 const ClearLocalStorage = () => {
-  localStorage.clear();
-  // redirect to a page
-  window.location.href = "/identity";
-}
+  useEffect(() => {
+    localStorage.clear();
+
+    const timer = setTimeout(() => {
+      window.location.href = "/identity";
+    }, 4000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div style={{ padding: "2rem", textAlign: "center" }}>
+      <h1>Profile Cleared</h1>
+      <p>
+        Your locally stored profile is cleared, redirecting you to identity select page.
+      </p>
+    </div>
+  );
+};
 
 function App() {
   return (
