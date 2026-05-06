@@ -84,12 +84,19 @@ const OpenLinkedInButtonPage = () => {
   );
 };
 
+const ClearLocalStorage = () => {
+  localStorage.clear();
+  // redirect to a page
+  window.location.href = "/identity";
+}
+
 function App() {
   return (
     <Router>
       <Routes>
         {/* <Route path="/" element={<ScreenPage />} /> */}
         <Route path="/" element={<OpenLinkedInButtonPage />} />
+        <Route path="/forget" element={<ClearLocalStorage />} />
         <Route path="/connect/:slug" element={<ConnectPage />} />
         <Route path="/identity" element={<IdentitySelect />} />
 

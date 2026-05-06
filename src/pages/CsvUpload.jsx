@@ -2,7 +2,6 @@ import { useState } from "react";
 import Papa from "papaparse";
 import { expectedColumns, TABLE_NAME, QR_BASE_URL, DEVELOPER_MODE } from "../data/config";
 import { createClient } from "@supabase/supabase-js";
-import QRCode from "qrcode";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { createBadgePng } from "../utils/badgeExporter";
