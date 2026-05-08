@@ -1,12 +1,12 @@
 import { getRoleForNode } from "./roleHelpers";
 
 export const sectorColors = {
-  Nonprofit: "#f59e0b",
   Tech: "#38bdf8",
   Finance: "#a78bfa",
-  Education: "#34d399",
-  Government: "#f87171",
+  Energy: "#EF9F27",
+  "Public sector": "#D85A30",
   Health: "#fb7185",
+  Other: "#7A7A78",
 };
 
 export const roleColors = {

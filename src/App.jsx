@@ -109,8 +109,8 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* <Route path="/" element={<ScreenPage />} /> */}
-        <Route path="/" element={<OpenLinkedInButtonPage />} />
+        <Route path="/" element={<ScreenPage />} />
+        {/* <Route path="/" element={<OpenLinkedInButtonPage />} /> */}
         <Route path="/forget" element={<ClearLocalStorage />} />
         <Route path="/connect/:slug" element={<ConnectPage />} />
         <Route path="/identity" element={<IdentitySelect />} />

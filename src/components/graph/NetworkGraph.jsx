@@ -112,7 +112,10 @@ function NetworkGraph({ attendees, connections }) {
 
     const svg = d3.select(svgRef.current);
 
-    svg.style("cursor", "grab");
+svg.selectAll("*").interrupt();
+svg.selectAll("*").remove();
+
+svg.style("cursor", "grab");
 
     const graphGroup = svg.append("g");
     const linkGroup = graphGroup.append("g");
@@ -153,16 +156,18 @@ function NetworkGraph({ attendees, connections }) {
         d3
           .forceLink([])
           .id((d) => d.id)
-          .distance(70)
-          .strength(0.8)
+          .distance((d) => d.isCrossSector ? 180 : 130)
+          .strength(0.35)
       )
-      .force("charge", d3.forceManyBody().strength(-170))
+      .force("charge", d3.forceManyBody().strength(-650))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("x", d3.forceX(width / 2).strength(0.08))
-      .force("y", d3.forceY(height / 2).strength(0.08))
+      .force("x", d3.forceX(width / 2).strength(0.03))
+      .force("y", d3.forceY(height / 2).strength(0.03))
       .force(
         "collision",
-        d3.forceCollide().radius((d) => 18 + d.connectionCount * 1.5)
+        d3.forceCollide()
+  .radius((d) => 34 + d.connectionCount * 3)
+  .iterations(3)
       );
 
     simulation.on("tick", () => {
@@ -222,9 +227,26 @@ function NetworkGraph({ attendees, connections }) {
     initializedRef.current = true;
 
     return () => {
-      simulation.stop();
-      initializedRef.current = false;
-    };
+  simulation.stop();
+
+  d3.select(svgRef.current).selectAll("*").interrupt();
+  d3.select(svgRef.current).selectAll("*").remove();
+
+  graphGroupRef.current = null;
+  linkGroupRef.current = null;
+  nodeGroupRef.current = null;
+  labelGroupRef.current = null;
+
+  linkSelectionRef.current = null;
+  nodeSelectionRef.current = null;
+  labelSelectionRef.current = null;
+
+  simulationRef.current = null;
+  nodeByIdRef.current = new Map();
+  previousLinkKeysRef.current = new Set();
+
+  initializedRef.current = false;
+};
   }, []);
 
   useEffect(() => {
@@ -290,8 +312,8 @@ function NetworkGraph({ attendees, connections }) {
 
       return {
         ...node,
-        x: width / 2 + (Math.random() - 0.5) * 80,
-        y: height / 2 + (Math.random() - 0.5) * 80,
+        x: width / 2 + (Math.random() - 0.5) * width * 0.6,
+        y: height / 2 + (Math.random() - 0.5) * height * 0.6,
         vx: 0,
         vy: 0,
       };
@@ -344,8 +366,14 @@ function NetworkGraph({ attendees, connections }) {
 
     simulation.force(
       "collision",
-      d3.forceCollide().radius((d) => 18 + d.connectionCount * 1.5)
+      d3.forceCollide()
+  .radius((d) => 34 + d.connectionCount * 3)
+  .iterations(3)
     );
+
+    linkGroupRef.current.selectAll("line").interrupt();
+    nodeGroupRef.current.selectAll("circle").interrupt();
+    labelGroupRef.current.selectAll("text").interrupt();
 
     const links = linkGroupRef.current
       .selectAll("line")
@@ -388,12 +416,7 @@ function NetworkGraph({ attendees, connections }) {
             .attr("stroke", (d) => (d.isCrossSector ? "#22c55e" : "#4b5563"))
             .attr("stroke-width", (d) => (d.isCrossSector ? 3 : 1.5))
             .attr("stroke-opacity", 0.85),
-        (exit) =>
-          exit
-            .transition()
-            .duration(300)
-            .attr("stroke-opacity", 0)
-            .remove()
+        (exit) => exit.interrupt().remove()
       );
 
     const nodes = nodeGroupRef.current
@@ -612,10 +635,9 @@ function NetworkGraph({ attendees, connections }) {
           ref={wrapperRef}
           className={`
             overflow-hidden border border-white/10 bg-black/30
-            ${
-              isFullscreen
-                ? "h-screen w-screen rounded-none bg-[#0e0e0c]"
-                : "h-[calc(100vh-220px)] min-h-[620px] rounded-2xl"
+            ${isFullscreen
+              ? "h-screen w-screen rounded-none bg-[#0e0e0c]"
+              : "h-[calc(100vh-220px)] min-h-[620px] rounded-2xl"
             }
           `}
         >
