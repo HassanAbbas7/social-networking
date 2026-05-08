@@ -1,23 +1,3 @@
-"""
-supabase_test_client.py
-
-Real Supabase backend testing client for:
-- adding attendees
-- fetching attendees
-- deleting attendees
-- creating attendee connections
-- listing connections
-
-Requires:
-    pip install requests python-dotenv
-
-.env example:
-    SUPABASE_URL=https://xxxx.supabase.co
-    SUPABASE_KEY=your_service_role_or_anon_key
-    ATTENDEES_TABLE=attendees
-    CONNECTIONS_TABLE=connections
-"""
-
 from __future__ import annotations
 
 import os

@@ -609,8 +609,6 @@ svg.style("cursor", "grab");
   return (
     <main className="min-h-screen bg-[#0e0e0c] p-6 text-white">
       <section className="mx-auto max-w-none">
-        {!isFullscreen && <GraphHeader stats={stats} />}
-
         {!isFullscreen && (
           <GraphControls
             showNames={showNames}
