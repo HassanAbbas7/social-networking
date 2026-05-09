@@ -465,7 +465,7 @@ export const countryMap = {
     "zm": "Zambia",
     "zw": "Zimbabwe"
 }
-export const DEVELOPER_MODE = false;
+export const DEVELOPER_MODE = true;
 
 export const QR_BASE_URL = "https://buildingecosystems.netlify.app/connect/"
 

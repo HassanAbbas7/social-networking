@@ -6,6 +6,7 @@ import RecordsPage from "./pages/RecordsPage";
 import ConnectPage from "./pages/Connect";
 import IdentitySelect from "./pages/IdentitySelect";
 import AdminLayout from "./layouts/AdminLayout";
+import LeaderboardPage from "./pages/LeaderboardPage";
 import { DEVELOPER_MODE } from "./data/config";
 
 
@@ -110,6 +111,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/screen" element={<ScreenPage />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
         {/* <Route path="/" element={<OpenLinkedInButtonPage />} /> */}
         <Route path="/forget" element={<ClearLocalStorage />} />
         <Route path="/connect/:slug" element={<ConnectPage />} />

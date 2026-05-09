@@ -371,10 +371,15 @@ export async function createBadgePng(profile) {
       letterSpacing: 1.4,
     });
 
+    const logo2Img = await loadImage("/logo2.png");
     const logoImg = await loadImage(LOGO_URL);
+
+    let currentRight = contentRight;
+
     if (logoImg) {
       const logoMaxW = 68;
       const logoMaxH = 38;
+
       const ratio = Math.min(
         logoMaxW / logoImg.naturalWidth,
         logoMaxH / logoImg.naturalHeight
@@ -385,10 +390,33 @@ export async function createBadgePng(profile) {
 
       ctx.drawImage(
         logoImg,
-        contentRight - logoW,
+        currentRight - logoW,
         headerTop,
         logoW,
         logoH
+      );
+
+      currentRight -= (logoW + 2);
+    }
+
+    if (logo2Img) {
+      const logo2MaxW = 68;
+      const logo2MaxH = 38;
+
+      const ratio2 = Math.min(
+        logo2MaxW / logo2Img.naturalWidth,
+        logo2MaxH / logo2Img.naturalHeight
+      );
+
+      const logo2W = logo2Img.naturalWidth * ratio2;
+      const logo2H = logo2Img.naturalHeight * ratio2;
+
+      ctx.drawImage(
+        logo2Img,
+        currentRight - logo2W,
+        headerTop,
+        logo2W,
+        logo2H
       );
     }
 
