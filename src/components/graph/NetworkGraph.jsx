@@ -1,31 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
-import GraphHeader from "./GraphHeader";
-import GraphControls from "./GraphControls";
-import GraphLegend from "./GraphLegend";
-import {
-  buildGraphData,
-  sectorColors,
-  roleColors,
-} from "../../lib/graphHelpers";
-import { useNetworkStats } from "../../hooks/useNetworkStats";
+import { buildGraphData } from "../../lib/graphHelpers";
+
+// Fallback palettes — overridden by props passed from ScreenPage
+const DEFAULT_SECTOR_COLORS = {
+  tech: "#378ADD",
+  finance: "#7F77DD",
+  health: "#1D9E75",
+  energy: "#EF9F27",
+  public_sector: "#D85A30",
+  other: "#888780",
+};
+
+const DEFAULT_ROLE_COLORS = {
+  Anchor: "#EF9F27",
+  Connector: "#1D9E75",
+  Explorer: "#7F77DD",
+  Catalyst: "#D85A30",
+  Builder: "#378ADD",
+};
 
 function getNodeId(value) {
   return typeof value === "object" && value !== null ? value.id : value;
-}
-
-function getLinkKey(link) {
-  const source = getNodeId(link.source);
-  const target = getNodeId(link.target);
-
-  return [source, target].sort().join("__");
 }
 
 function getSafeNumber(value, fallback) {
   return Number.isFinite(value) ? value : fallback;
 }
 
-function NetworkGraph({ attendees, connections }) {
+function NetworkGraph({
+  attendees,
+  connections,
+  showNames = false,
+  revealRoles = false,
+  layoutVersion = 0,
+  sectorColors = DEFAULT_SECTOR_COLORS,
+  roleColors = DEFAULT_ROLE_COLORS,
+}) {
   const svgRef = useRef(null);
   const wrapperRef = useRef(null);
   const simulationRef = useRef(null);
@@ -42,24 +53,29 @@ function NetworkGraph({ attendees, connections }) {
   const nodeByIdRef = useRef(new Map());
   const previousLinkKeysRef = useRef(new Set());
   const initializedRef = useRef(false);
+
   const dimensionsRef = useRef({
     width: 1200,
-    height: 620,
+    height: 460,
   });
 
-  const [showNames, setShowNames] = useState(true);
-  const [rolesRevealed, setRolesRevealed] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [dimensions, setDimensions] = useState({
     width: 1200,
-    height: 620,
+    height: 460,
   });
 
   const graphData = useMemo(() => {
     return buildGraphData(attendees, connections);
   }, [attendees, connections]);
 
-  const stats = useNetworkStats(attendees, connections);
+  const getNodeColor = (node) => {
+    console.log(node)
+  if (revealRoles) {
+    return roleColors[node.role] || "#888780";
+  }
+
+  return sectorColors[node.sector.toLowerCase()] || "#888780";
+};
 
   useEffect(() => {
     dimensionsRef.current = dimensions;
@@ -77,9 +93,10 @@ function NetworkGraph({ attendees, connections }) {
         window.innerWidth ||
         1200;
 
-      const height = isFullscreen
-        ? window.innerHeight
-        : Math.max(620, window.innerHeight - 220);
+      const height =
+        Math.round(rect.height) ||
+        wrapperRef.current.clientHeight ||
+        460;
 
       setDimensions((previous) => {
         if (previous.width === width && previous.height === height) {
@@ -104,7 +121,7 @@ function NetworkGraph({ attendees, connections }) {
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateDimensions);
     };
-  }, [isFullscreen]);
+  }, []);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -112,10 +129,12 @@ function NetworkGraph({ attendees, connections }) {
 
     const svg = d3.select(svgRef.current);
 
-svg.selectAll("*").interrupt();
-svg.selectAll("*").remove();
+    svg.selectAll("*").interrupt();
+    svg.selectAll("*").remove();
 
-svg.style("cursor", "grab");
+    svg
+      .style("cursor", "grab")
+      .style("background", "#f7f7f5");
 
     const graphGroup = svg.append("g");
     const linkGroup = graphGroup.append("g");
@@ -129,7 +148,7 @@ svg.style("cursor", "grab");
 
     const zoom = d3
       .zoom()
-      .scaleExtent([0.25, 5])
+      .scaleExtent([0.45, 3])
       .on("start", () => {
         svg.style("cursor", "grabbing");
       })
@@ -146,7 +165,7 @@ svg.style("cursor", "grab");
 
     svg.call(
       zoom.transform,
-      d3.zoomIdentity.translate(width * 0.03, height * 0.03).scale(0.95)
+      d3.zoomIdentity.translate(width * 0.01, height * 0.02).scale(0.98)
     );
 
     const simulation = d3
@@ -156,18 +175,19 @@ svg.style("cursor", "grab");
         d3
           .forceLink([])
           .id((d) => d.id)
-          .distance((d) => d.isCrossSector ? 180 : 130)
-          .strength(0.35)
+          .distance(90)
+          .strength(0.6)
       )
-      .force("charge", d3.forceManyBody().strength(-650))
+      .force("charge", d3.forceManyBody().strength(-120))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("x", d3.forceX(width / 2).strength(0.03))
-      .force("y", d3.forceY(height / 2).strength(0.03))
+      .force("x", d3.forceX(width / 2).strength(0.045))
+      .force("y", d3.forceY(height / 2).strength(0.06))
       .force(
         "collision",
-        d3.forceCollide()
-  .radius((d) => 34 + d.connectionCount * 3)
-  .iterations(3)
+        d3
+          .forceCollide()
+          .radius((d) => 10 + d.connectionCount * 1.2)
+          .iterations(2)
       );
 
     simulation.on("tick", () => {
@@ -218,8 +238,8 @@ svg.style("cursor", "grab");
 
       if (labelSelectionRef.current) {
         labelSelectionRef.current
-          .attr("x", (d) => getSafeNumber(d.x, currentWidth / 2) + 13)
-          .attr("y", (d) => getSafeNumber(d.y, currentHeight / 2) + 4);
+          .attr("x", (d) => getSafeNumber(d.x, currentWidth / 2) + 10)
+          .attr("y", (d) => getSafeNumber(d.y, currentHeight / 2) + 3);
       }
     });
 
@@ -227,26 +247,25 @@ svg.style("cursor", "grab");
     initializedRef.current = true;
 
     return () => {
-  simulation.stop();
+      simulation.stop();
 
-  d3.select(svgRef.current).selectAll("*").interrupt();
-  d3.select(svgRef.current).selectAll("*").remove();
+      d3.select(svgRef.current).selectAll("*").interrupt();
+      d3.select(svgRef.current).selectAll("*").remove();
 
-  graphGroupRef.current = null;
-  linkGroupRef.current = null;
-  nodeGroupRef.current = null;
-  labelGroupRef.current = null;
+      graphGroupRef.current = null;
+      linkGroupRef.current = null;
+      nodeGroupRef.current = null;
+      labelGroupRef.current = null;
 
-  linkSelectionRef.current = null;
-  nodeSelectionRef.current = null;
-  labelSelectionRef.current = null;
+      linkSelectionRef.current = null;
+      nodeSelectionRef.current = null;
+      labelSelectionRef.current = null;
 
-  simulationRef.current = null;
-  nodeByIdRef.current = new Map();
-  previousLinkKeysRef.current = new Set();
-
-  initializedRef.current = false;
-};
+      simulationRef.current = null;
+      nodeByIdRef.current = new Map();
+      previousLinkKeysRef.current = new Set();
+      initializedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -266,8 +285,8 @@ svg.style("cursor", "grab");
       d3.forceCenter(dimensions.width / 2, dimensions.height / 2)
     );
 
-    simulation.force("x", d3.forceX(dimensions.width / 2).strength(0.08));
-    simulation.force("y", d3.forceY(dimensions.height / 2).strength(0.08));
+    simulation.force("x", d3.forceX(dimensions.width / 2).strength(0.045));
+    simulation.force("y", d3.forceY(dimensions.height / 2).strength(0.06));
 
     simulation.nodes().forEach((node) => {
       node.x = getSafeNumber(node.x, dimensions.width / 2);
@@ -276,8 +295,14 @@ svg.style("cursor", "grab");
       node.vy = getSafeNumber(node.vy, 0);
     });
 
-    simulation.alpha(0.18).restart();
+    simulation.alpha(0.2).restart();
   }, [dimensions]);
+
+  useEffect(() => {
+    if (!simulationRef.current) return;
+
+    simulationRef.current.alpha(0.75).restart();
+  }, [layoutVersion]);
 
   useEffect(() => {
     if (
@@ -312,8 +337,8 @@ svg.style("cursor", "grab");
 
       return {
         ...node,
-        x: width / 2 + (Math.random() - 0.5) * width * 0.6,
-        y: height / 2 + (Math.random() - 0.5) * height * 0.6,
+        x: width / 2 + (Math.random() - 0.5) * width * 0.75,
+        y: height / 2 + (Math.random() - 0.5) * height * 0.75,
         vx: 0,
         vy: 0,
       };
@@ -361,14 +386,15 @@ svg.style("cursor", "grab");
     simulation
       .force("link")
       .links(nextLinks)
-      .distance(70)
-      .strength(0.8);
+      .distance(90)
+      .strength(0.6);
 
     simulation.force(
       "collision",
-      d3.forceCollide()
-  .radius((d) => 34 + d.connectionCount * 3)
-  .iterations(3)
+      d3
+        .forceCollide()
+        .radius((d) => 10 + d.connectionCount * 1.2)
+        .iterations(2)
     );
 
     linkGroupRef.current.selectAll("line").interrupt();
@@ -398,9 +424,10 @@ svg.style("cursor", "grab");
               const target = nodeByIdRef.current.get(getNodeId(d.target));
               return getSafeNumber(target?.y, height / 2);
             })
-            .attr("stroke", (d) => (d.isCrossSector ? "#22c55e" : "#4b5563"))
-            .attr("stroke-width", (d) => (d.isCrossSector ? 3 : 1.5))
+            .attr("stroke", "#8ec5ad")
+            .attr("stroke-width", 1.4)
             .attr("stroke-opacity", 0)
+            .attr("stroke-linecap", "round")
             .attr("stroke-dasharray", (d) =>
               newLinkKeys.has(d.key) ? "4 4" : null
             )
@@ -408,14 +435,15 @@ svg.style("cursor", "grab");
               enter
                 .transition()
                 .duration(500)
-                .attr("stroke-opacity", 0.85)
+                .attr("stroke-opacity", 0.42)
                 .attr("stroke-dasharray", null)
             ),
         (update) =>
           update
-            .attr("stroke", (d) => (d.isCrossSector ? "#22c55e" : "#4b5563"))
-            .attr("stroke-width", (d) => (d.isCrossSector ? 3 : 1.5))
-            .attr("stroke-opacity", 0.85),
+            .attr("stroke", "#8ec5ad")
+            .attr("stroke-width", 1.4)
+            .attr("stroke-opacity", 0.42)
+            .attr("stroke-linecap", "round"),
         (exit) => exit.interrupt().remove()
       );
 
@@ -429,13 +457,9 @@ svg.style("cursor", "grab");
             .attr("cx", (d) => getSafeNumber(d.x, width / 2))
             .attr("cy", (d) => getSafeNumber(d.y, height / 2))
             .attr("r", 0)
-            .attr("fill", (d) =>
-              rolesRevealed
-                ? roleColors[d.role]
-                : sectorColors[d.sector] || "#e5e7eb"
-            )
-            .attr("stroke", "#ffffff")
-            .attr("stroke-width", 2)
+            .attr("fill", getNodeColor)
+            .attr("stroke", "#d9d9d4")
+            .attr("stroke-width", 1.5)
             .call(
               d3
                 .drag()
@@ -443,7 +467,7 @@ svg.style("cursor", "grab");
                   event.sourceEvent.stopPropagation();
 
                   if (!event.active) {
-                    simulationRef.current?.alphaTarget(0.3).restart();
+                    simulationRef.current?.alphaTarget(0.25).restart();
                   }
 
                   d.fx = d.x;
@@ -464,29 +488,28 @@ svg.style("cursor", "grab");
             );
 
           enteredNodes.append("title").text((d) => {
-            return `${d.name} · ${d.company} · ${d.sector}`;
+            return `${d.name || "Attendee"} · ${d.company || ""} · ${
+              d.sector || ""
+            }`;
           });
 
           enteredNodes
             .transition()
             .duration(500)
-            .attr("r", (d) => 8 + d.connectionCount * 2);
+            .attr("r", (d) => 4 + d.connectionCount * 0.9);
 
           return enteredNodes;
         },
         (update) =>
-          update
-            .attr("fill", (d) =>
-              rolesRevealed
-                ? roleColors[d.role]
-                : sectorColors[d.sector] || "#e5e7eb"
-            )
-            .call((update) =>
-              update
-                .transition()
-                .duration(300)
-                .attr("r", (d) => 8 + d.connectionCount * 2)
-            ),
+          update.call((update) =>
+            update
+              .transition()
+              .duration(1000)
+              .attr("fill", getNodeColor)
+              .transition()
+              .duration(300)
+              .attr("r", (d) => 4 + d.connectionCount * 0.9)
+          ),
         (exit) =>
           exit
             .transition()
@@ -496,7 +519,9 @@ svg.style("cursor", "grab");
       );
 
     nodes.select("title").text((d) => {
-      return `${d.name} · ${d.company} · ${d.sector}`;
+      return `${d.name || "Attendee"} · ${d.company || ""} · ${
+        d.sector || ""
+      }`;
     });
 
     const labels = labelGroupRef.current
@@ -506,16 +531,17 @@ svg.style("cursor", "grab");
         (enter) =>
           enter
             .append("text")
-            .text((d) => d.name)
-            .attr("x", (d) => getSafeNumber(d.x, width / 2) + 13)
-            .attr("y", (d) => getSafeNumber(d.y, height / 2) + 4)
-            .attr("font-size", 12)
-            .attr("font-weight", 700)
-            .attr("fill", "#f8fafc")
+            .text((d) => d.name?.split(" ")[0] || "")
+            .attr("x", (d) => getSafeNumber(d.x, width / 2) + 10)
+            .attr("y", (d) => getSafeNumber(d.y, height / 2) + 3)
+            .attr("font-size", 10)
+            .attr("font-weight", 500)
+            .attr("fill", "#4b4b47")
             .attr("paint-order", "stroke")
-            .attr("stroke", "#0e0e0c")
+            .attr("stroke", "#f7f7f5")
             .attr("stroke-width", 3)
             .attr("opacity", 0)
+            .style("pointer-events", "none")
             .call((enter) =>
               enter
                 .transition()
@@ -523,7 +549,9 @@ svg.style("cursor", "grab");
                 .attr("opacity", showNames ? 1 : 0)
             ),
         (update) =>
-          update.text((d) => d.name).attr("opacity", showNames ? 1 : 0),
+          update
+            .text((d) => d.name?.split(" ")[0] || "")
+            .attr("opacity", showNames ? 1 : 0),
         (exit) =>
           exit
             .transition()
@@ -540,8 +568,8 @@ svg.style("cursor", "grab");
       nextNodes.forEach((node) => {
         if (!newConnectedNodeIds.has(node.id)) return;
 
-        node.vx = (node.vx || 0) + (Math.random() - 0.5) * 2.5;
-        node.vy = (node.vy || 0) + (Math.random() - 0.5) * 2.5;
+        node.vx = (node.vx || 0) + (Math.random() - 0.5) * 1.4;
+        node.vy = (node.vy || 0) + (Math.random() - 0.5) * 1.4;
       });
 
       nodes
@@ -549,102 +577,34 @@ svg.style("cursor", "grab");
         .raise()
         .transition()
         .duration(140)
-        .attr("r", (d) => 12 + d.connectionCount * 2.4)
+        .attr("r", (d) => 6 + d.connectionCount)
         .transition()
         .duration(420)
-        .attr("r", (d) => 8 + d.connectionCount * 2);
+        .attr("r", (d) => 4 + d.connectionCount * 0.9);
 
-      simulation.alphaTarget(0.08).restart();
+      simulation.alphaTarget(0.06).restart();
 
       window.setTimeout(() => {
         simulation.alphaTarget(0);
       }, 700);
     } else {
-      simulation.alpha(0.18).restart();
+      simulation.alpha(0.2).restart();
     }
-  }, [graphData, rolesRevealed, showNames]);
-
-  function reheatLayout() {
-    simulationRef.current?.alpha(0.6).restart();
-  }
-
-  async function toggleFullscreen() {
-    const element = wrapperRef.current;
-
-    if (!element) return;
-
-    if (!document.fullscreenElement) {
-      await element.requestFullscreen();
-      setIsFullscreen(true);
-
-      window.setTimeout(() => {
-        simulationRef.current?.alpha(0.3).restart();
-      }, 300);
-    } else {
-      await document.exitFullscreen();
-      setIsFullscreen(false);
-
-      window.setTimeout(() => {
-        simulationRef.current?.alpha(0.3).restart();
-      }, 300);
-    }
-  }
-
-  useEffect(() => {
-    function handleFullscreenChange() {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-
-      window.setTimeout(() => {
-        simulationRef.current?.alpha(0.3).restart();
-      }, 300);
-    }
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
+  }, [graphData, revealRoles, showNames]);
 
   return (
-    <main className="min-h-screen bg-[#0e0e0c] p-6 text-white">
-      <section className="mx-auto max-w-none">
-        {!isFullscreen && (
-          <GraphControls
-            showNames={showNames}
-            rolesRevealed={rolesRevealed}
-            onToggleNames={() => setShowNames((value) => !value)}
-            onRevealRoles={() => setRolesRevealed(true)}
-            onResetRoles={() => setRolesRevealed(false)}
-            onReheatLayout={reheatLayout}
-          />
-        )}
-
-        <div className="mb-4 flex justify-end">
-          <button
-            onClick={toggleFullscreen}
-            className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20"
-          >
-            {isFullscreen ? "Exit full screen" : "Full screen"}
-          </button>
-        </div>
-
-        <div
-          ref={wrapperRef}
-          className={`
-            overflow-hidden border border-white/10 bg-black/30
-            ${isFullscreen
-              ? "h-screen w-screen rounded-none bg-[#0e0e0c]"
-              : "h-[calc(100vh-220px)] min-h-[620px] rounded-2xl"
-            }
-          `}
-        >
-          <svg ref={svgRef} className="h-full w-full" />
-        </div>
-
-        {!isFullscreen && <GraphLegend rolesRevealed={rolesRevealed} />}
-      </section>
-    </main>
+    <div className="h-full w-full bg-[#f7f7f5]">
+      <div
+        ref={wrapperRef}
+        className="relative h-full min-h-[460px] w-full overflow-hidden bg-[#f7f7f5]"
+      >
+        <svg
+          ref={svgRef}
+          className="h-full w-full"
+          style={{ background: "#f7f7f5" }}
+        />
+      </div>
+    </div>
   );
 }
 
