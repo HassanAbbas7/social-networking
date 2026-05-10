@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import { buildGraphData } from "../../lib/graphHelpers";
+import { DEVELOPER_MODE } from "../../data/config";
 
 // Fallback palettes — overridden by props passed from ScreenPage
 const DEFAULT_SECTOR_COLORS = {
@@ -531,7 +532,12 @@ function NetworkGraph({
         (enter) =>
           enter
             .append("text")
-            .text((d) => d.name?.split(" ")[0] || "")
+            // if (!DEVELOPER_MODE) {
+            // .text((d) => d.name?.split(" ")[0] || "")
+            // } else {
+            //   .text((d) => d.name || "")
+            // }
+            .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "" : d.name || "")
             .attr("x", (d) => getSafeNumber(d.x, width / 2) + 10)
             .attr("y", (d) => getSafeNumber(d.y, height / 2) + 3)
             .attr("font-size", 10)
@@ -550,7 +556,7 @@ function NetworkGraph({
             ),
         (update) =>
           update
-            .text((d) => d.name?.split(" ")[0] || "")
+            .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "": d.name || "")
             .attr("opacity", showNames ? 1 : 0),
         (exit) =>
           exit

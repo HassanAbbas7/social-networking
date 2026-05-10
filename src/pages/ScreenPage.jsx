@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import NetworkGraph from "../components/graph/NetworkGraph";
 import { TABLE_NAME } from "../data/config";
+import { assignRoles, computeRoles } from "../utils/roleUtils";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -19,7 +20,6 @@ const SECTOR_COLORS = {
   other: "#888780",
 };
 
-// Role colours as specified in the design doc (Section 7)
 const ROLE_COLORS = {
   Anchor: "#EF9F27",
   Connector: "#1D9E75",
@@ -27,79 +27,6 @@ const ROLE_COLORS = {
   Catalyst: "#D85A30",
   Builder: "#378ADD",
 };
-
-/**
- * Pure function — computes a role for every attendee from the raw DB rows.
- * Called once on button press, not on every render.
- */
-function computeRoles(attendees, connections) {
-  const attendeeById = new Map(attendees.map((a) => [a.id, a]));
-
-  const stats = new Map();
-
-  attendees.forEach((attendee) => {
-    stats.set(attendee.id, {
-      id: attendee.id,
-      connectionCount: 0,
-      crossSectorCount: 0,
-      sectorsReached: new Set(),
-    });
-  });
-
-  connections.forEach((connection) => {
-    const a = attendeeById.get(connection.scanner_id);
-    const b = attendeeById.get(connection.scanned_id);
-    if (!a || !b) return;
-
-    const aStats = stats.get(a.id);
-    const bStats = stats.get(b.id);
-    if (!aStats || !bStats) return;
-
-    aStats.connectionCount += 1;
-    bStats.connectionCount += 1;
-
-    aStats.sectorsReached.add(b.sector);
-    bStats.sectorsReached.add(a.sector);
-
-    if (a.sector !== b.sector) {
-      aStats.crossSectorCount += 1;
-      bStats.crossSectorCount += 1;
-    }
-  });
-
-  const ranked = [...stats.values()].sort(
-    (a, b) => b.connectionCount - a.connectionCount
-  );
-
-  const top15Count = Math.max(1, Math.ceil(ranked.length * 0.15));
-  const top30Count = Math.max(1, Math.ceil(ranked.length * 0.3));
-
-  const anchorIds = new Set(ranked.slice(0, top15Count).map((s) => s.id));
-  const catalystIds = new Set(ranked.slice(0, top30Count).map((s) => s.id));
-
-  const result = new Map();
-
-  ranked.forEach((stat) => {
-    const crossSectorRatio =
-      stat.connectionCount === 0
-        ? 0
-        : stat.crossSectorCount / stat.connectionCount;
-
-    if (anchorIds.has(stat.id)) {
-      result.set(stat.id, "Anchor");
-    } else if (crossSectorRatio >= 0.3 && stat.connectionCount >= 3) {
-      result.set(stat.id, "Connector");
-    } else if (stat.sectorsReached.size >= 3 && crossSectorRatio > 0.5) {
-      result.set(stat.id, "Explorer");
-    } else if (catalystIds.has(stat.id)) {
-      result.set(stat.id, "Catalyst");
-    } else {
-      result.set(stat.id, "Builder");
-    }
-  });
-
-  return result;
-}
 
 function ScreenPage() {
   const [attendees, setAttendees] = useState([]);
@@ -111,22 +38,8 @@ function ScreenPage() {
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [isGraphFullscreen, setIsGraphFullscreen] = useState(false);
 
-  // Roles are computed on demand (button press) and stored here.
-  // null means "not yet computed"; recomputed fresh each time reveal is toggled on.
+  // null = not yet computed; set on reveal-button press
   const [computedRoleById, setComputedRoleById] = useState(null);
-
-  // Keep a stable ref to the latest attendees/connections for the reveal callback
-  // so it always uses live data without stale closures.
-  const attendeesRef = useRef(attendees);
-  const connectionsRef = useRef(connections);
-
-  useEffect(() => {
-    attendeesRef.current = attendees;
-  }, [attendees]);
-
-  useEffect(() => {
-    connectionsRef.current = connections;
-  }, [connections]);
 
   useEffect(() => {
     let isMounted = true;
@@ -149,10 +62,7 @@ function ScreenPage() {
       if (!isMounted) return;
 
       if (attendeesError || connectionsError) {
-        console.error(
-          "Error loading screen data:",
-          attendeesError || connectionsError
-        );
+        console.error("Error loading screen data:", attendeesError || connectionsError);
         setErrorMessage("Could not load the live network.");
         setLoading(false);
         return;
@@ -164,10 +74,7 @@ function ScreenPage() {
     }
 
     loadGraphData();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {
@@ -175,93 +82,62 @@ function ScreenPage() {
       .channel("screen-connections-realtime")
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: CONNECTIONS_TABLE,
-        },
+        { event: "INSERT", schema: "public", table: CONNECTIONS_TABLE },
         (payload) => {
           const newConnection = payload.new;
-
-          setConnections((currentConnections) => {
-            const alreadyExists = currentConnections.some(
-              (connection) => connection.id === newConnection.id
-            );
-
-            if (alreadyExists) return currentConnections;
-
-            return [...currentConnections, newConnection];
+          setConnections((current) => {
+            if (current.some((c) => c.id === newConnection.id)) return current;
+            return [...current, newConnection];
           });
         }
       )
       .on(
         "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: CONNECTIONS_TABLE,
-        },
+        { event: "DELETE", schema: "public", table: CONNECTIONS_TABLE },
         (payload) => {
-          const deletedConnection = payload.old;
-
-          setConnections((currentConnections) =>
-            currentConnections.filter(
-              (connection) => connection.id !== deletedConnection.id
-            )
+          setConnections((current) =>
+            current.filter((c) => c.id !== payload.old.id)
           );
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const attendeeById = useMemo(() => {
-    return new Map(attendees.map((attendee) => [attendee.id, attendee]));
-  }, [attendees]);
+  const attendeeById = useMemo(
+    () => new Map(attendees.map((a) => [a.id, a])),
+    [attendees]
+  );
 
   const visibleAttendees = useMemo(() => {
-    const connectedAttendeeIds = new Set();
-
-    connections.forEach((connection) => {
-      if (connection.scanner_id)
-        connectedAttendeeIds.add(connection.scanner_id);
-      if (connection.scanned_id)
-        connectedAttendeeIds.add(connection.scanned_id);
+    const connectedIds = new Set();
+    connections.forEach((c) => {
+      if (c.scanner_id) connectedIds.add(c.scanner_id);
+      if (c.scanned_id) connectedIds.add(c.scanned_id);
     });
-
-    return attendees.filter((attendee) =>
-      connectedAttendeeIds.has(attendee.id)
-    );
+    return attendees.filter((a) => connectedIds.has(a.id));
   }, [attendees, connections]);
 
   const visibleConnections = useMemo(() => {
-    const visibleAttendeeIds = new Set(
-      visibleAttendees.map((attendee) => attendee.id)
-    );
-
+    const visibleIds = new Set(visibleAttendees.map((a) => a.id));
     return connections.filter(
-      (connection) =>
-        visibleAttendeeIds.has(connection.scanner_id) &&
-        visibleAttendeeIds.has(connection.scanned_id)
+      (c) => visibleIds.has(c.scanner_id) && visibleIds.has(c.scanned_id)
     );
   }, [connections, visibleAttendees]);
 
   /**
-   * Toggle reveal: on → query the DB fresh, compute roles, update state.
-   * off → clear computed roles so they reset cleanly.
+   * On reveal: fetch the freshest snapshot from the DB, then call
+   * computeRoles from roleUtils — the exact same function Leaderboard uses,
+   * guaranteeing identical role assignments.
    */
   async function handleRevealRoles() {
     if (revealRoles) {
-      // Toggling off — go back to sector view
       setRevealRoles(false);
       setComputedRoleById(null);
       return;
     }
 
-    // Fetch the freshest snapshot directly from the DB
     const [
       { data: freshAttendees, error: attendeesError },
       { data: freshConnections, error: connectionsError },
@@ -274,26 +150,15 @@ function ScreenPage() {
     ]);
 
     if (attendeesError || connectionsError) {
-      console.error(
-        "Error fetching roles:",
-        attendeesError || connectionsError
-      );
+      console.error("Error fetching roles:", attendeesError || connectionsError);
       return;
     }
 
-    const roleMap = computeRoles(
-      freshAttendees || [],
-      freshConnections || []
-    );
-
+    const roleMap = computeRoles(freshAttendees || [], freshConnections || []);
     setComputedRoleById(roleMap);
     setRevealRoles(true);
   }
 
-  /**
-   * When roles are revealed, attach the computed role to each visible attendee.
-   * When not revealed, role field is omitted so the graph falls back to sector colour.
-   */
   const graphAttendees = useMemo(() => {
     return visibleAttendees.map((attendee) => ({
       ...attendee,
@@ -305,28 +170,22 @@ function ScreenPage() {
   }, [visibleAttendees, revealRoles, computedRoleById]);
 
   const crossSectorCount = useMemo(() => {
-    return visibleConnections.filter((connection) => {
-      const scanner = attendeeById.get(connection.scanner_id);
-      const scanned = attendeeById.get(connection.scanned_id);
-
+    return visibleConnections.filter((c) => {
+      const scanner = attendeeById.get(c.scanner_id);
+      const scanned = attendeeById.get(c.scanned_id);
       return scanner && scanned && scanner.sector !== scanned.sector;
     }).length;
   }, [visibleConnections, attendeeById]);
 
   const clustersFormedCount = useMemo(() => {
-    const visibleIds = new Set(visibleAttendees.map((attendee) => attendee.id));
+    const visibleIds = new Set(visibleAttendees.map((a) => a.id));
     const adjacency = new Map();
-
     visibleIds.forEach((id) => adjacency.set(id, []));
 
-    visibleConnections.forEach((connection) => {
-      const a = connection.scanner_id;
-      const b = connection.scanned_id;
-
-      if (!visibleIds.has(a) || !visibleIds.has(b)) return;
-
-      adjacency.get(a).push(b);
-      adjacency.get(b).push(a);
+    visibleConnections.forEach((c) => {
+      if (!visibleIds.has(c.scanner_id) || !visibleIds.has(c.scanned_id)) return;
+      adjacency.get(c.scanner_id).push(c.scanned_id);
+      adjacency.get(c.scanned_id).push(c.scanner_id);
     });
 
     const visited = new Set();
@@ -334,14 +193,11 @@ function ScreenPage() {
 
     visibleIds.forEach((id) => {
       if (visited.has(id)) return;
-
       clusters += 1;
       const stack = [id];
       visited.add(id);
-
       while (stack.length > 0) {
         const current = stack.pop();
-
         adjacency.get(current).forEach((neighbor) => {
           if (!visited.has(neighbor)) {
             visited.add(neighbor);
@@ -383,7 +239,7 @@ function ScreenPage() {
       >
         <button
           className="absolute right-6 top-6 z-10 rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
-          onClick={() => setIsGraphFullscreen((value) => !value)}
+          onClick={() => setIsGraphFullscreen((v) => !v)}
         >
           {isGraphFullscreen ? "Exit fullscreen" : "Fullscreen"}
         </button>
@@ -405,9 +261,9 @@ function ScreenPage() {
             <div className="flex gap-2">
               <button
                 className="rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
-                onClick={() => setShowNames((value) => !value)}
+                onClick={() => setShowNames((v) => !v)}
               >
-                Add connections ↗
+                Toggle Names
               </button>
 
               <button
@@ -419,7 +275,7 @@ function ScreenPage() {
 
               <button
                 className="rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
-                onClick={() => setLayoutVersion((value) => value + 1)}
+                onClick={() => setLayoutVersion((v) => v + 1)}
               >
                 Reset
               </button>
@@ -451,10 +307,7 @@ function ScreenPage() {
                 <LegendDot color={SECTOR_COLORS.finance} label="Finance" />
                 <LegendDot color={SECTOR_COLORS.health} label="Health" />
                 <LegendDot color={SECTOR_COLORS.energy} label="Energy" />
-                <LegendDot
-                  color={SECTOR_COLORS.public_sector}
-                  label="Public sector"
-                />
+                <LegendDot color={SECTOR_COLORS.public_sector} label="Public sector" />
                 <LegendDot color={SECTOR_COLORS.other} label="Other" />
               </div>
             )}

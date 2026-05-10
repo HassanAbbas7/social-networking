@@ -375,8 +375,8 @@ if __name__ == "__main__":
     #             name=f"{choice(firstNames)} {choice(lastNames)}",
     #             country="pk",
     #             company="ABC",
-    #             # sector=choice(["Tech", "Finance", "Health", "Energy", "Other"]),
-    #             sector="Tech",
+    #             sector=choice(["Tech", "Finance", "Health", "Energy", "Other"]),
+    #             # sector="Tech",
     #             title="Programmer",
     #             linkedin_url=f"https://linkedin.com/in/{firstNames[x].lower()}-test",
     #         )
