@@ -7,6 +7,8 @@ import ConnectPage from "./pages/Connect";
 import IdentitySelect from "./pages/IdentitySelect";
 import AdminLayout from "./layouts/AdminLayout";
 import Leaderboard from "./pages/LeaderboardPage";
+
+import HomePage from "./pages/HomePage";
 import { DEVELOPER_MODE } from "./data/config";
 
 
@@ -110,6 +112,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<HomePage />} />
         <Route path="/screen" element={<ScreenPage />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         {/* <Route path="/" element={<OpenLinkedInButtonPage />} /> */}
