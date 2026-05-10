@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TABLE_NAME } from "../data/config";
-import { assignRoles, computeAttendeeStats } from "../utils/roleUtils";
+import { computeAttendeeStats, computeRoles } from "../utils/roleUtils";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -10,6 +10,7 @@ const supabase = createClient(
 
 const CONNECTIONS_TABLE = "connections";
 const MAX_RANKS = 3;
+
 const DONATION_PER_CONNECTION = Number(
   import.meta.env.VITE_ANBI_EURO_PER_CONNECTION || 50
 );
@@ -21,7 +22,6 @@ const ROLE_DEFINITIONS = [
     name: "Anchor",
     subtitle: "Most connected",
     color: "#EF9F27",
-    metric: "connections",
     scoreKey: "connectionCount",
   },
   {
@@ -30,7 +30,6 @@ const ROLE_DEFINITIONS = [
     name: "Connector",
     subtitle: "Cross-sector bridges",
     color: "#1D9E75",
-    metric: "cross-sector",
     scoreKey: "crossSectorCount",
   },
   {
@@ -39,16 +38,14 @@ const ROLE_DEFINITIONS = [
     name: "Explorer",
     subtitle: "Sectors reached",
     color: "#7F77DD",
-    metric: "sectors",
     scoreKey: "sectorsReachedCount",
   },
   {
     key: "catalyst",
     roleName: "Catalyst",
     name: "Catalyst",
-    subtitle: "Most connected",
+    subtitle: "Fastest networker",
     color: "#D85A30",
-    metric: "connections",
     scoreKey: "connectionCount",
   },
   {
@@ -57,7 +54,6 @@ const ROLE_DEFINITIONS = [
     name: "Builder",
     subtitle: "Mutual connections",
     color: "#378ADD",
-    metric: "mutual",
     scoreKey: "mutualConnectionCount",
   },
 ];
@@ -68,24 +64,21 @@ const RANK_THEMES = {
     bg: "#D4A73A",
     text: "#1A1400",
     glow: "rgba(212, 167, 58, 0.4)",
-    rowBg: "linear-gradient(90deg, rgba(212, 167, 58, 0.15) 0%, rgba(212, 167, 58, 0.03) 100%)",
-    rowBorder: "rgba(212, 167, 58, 0.3)",
+    rankColor: "#D4A73A",
   },
   1: {
     label: "2ND",
     bg: "#A8ACAF",
     text: "#1A1A1A",
     glow: "rgba(168, 172, 175, 0.3)",
-    rowBg: "linear-gradient(90deg, rgba(168, 172, 175, 0.1) 0%, rgba(168, 172, 175, 0.02) 100%)",
-    rowBorder: "rgba(168, 172, 175, 0.2)",
+    rankColor: "#A8ACAF",
   },
   2: {
     label: "3RD",
     bg: "#C0825A",
     text: "#1A1000",
     glow: "rgba(192, 130, 90, 0.3)",
-    rowBg: "linear-gradient(90deg, rgba(192, 130, 90, 0.1) 0%, rgba(192, 130, 90, 0.02) 100%)",
-    rowBorder: "rgba(192, 130, 90, 0.2)",
+    rankColor: "#C0825A",
   },
 };
 
@@ -110,21 +103,55 @@ function getCompany(attendee) {
   );
 }
 
+function getVisibleAttendees(attendees, connections) {
+  const connectedIds = new Set();
+
+  connections.forEach((connection) => {
+    if (connection.scanner_id) connectedIds.add(connection.scanner_id);
+    if (connection.scanned_id) connectedIds.add(connection.scanned_id);
+  });
+
+  return attendees.filter((attendee) => connectedIds.has(attendee.id));
+}
+
+function getVisibleConnections(visibleAttendees, connections) {
+  const visibleIds = new Set(visibleAttendees.map((attendee) => attendee.id));
+
+  return connections.filter(
+    (connection) =>
+      visibleIds.has(connection.scanner_id) &&
+      visibleIds.has(connection.scanned_id)
+  );
+}
+
 function makeLeaderboardRoles(attendees, connections) {
-  // Use the shared assignRoles(computeAttendeeStats(...)) pipeline —
-  // identical to what ScreenPage uses via computeRoles()
-  const stats = assignRoles(computeAttendeeStats(attendees, connections));
+  const visibleAttendees = getVisibleAttendees(attendees, connections);
+  const visibleConnections = getVisibleConnections(visibleAttendees, connections);
+
+  const roleById = computeRoles(visibleAttendees, visibleConnections);
+
+  const stats = computeAttendeeStats(visibleAttendees, visibleConnections).map(
+    (stat) => ({
+      ...stat,
+      role: roleById.get(stat.id) || "Builder",
+    })
+  );
 
   return ROLE_DEFINITIONS.map((roleDef) => {
     const entries = stats
       .filter(
         (stat) =>
-          stat.role === roleDef.roleName && stat.connectionCount > 0
+          stat.role === roleDef.roleName &&
+          Number(stat.connectionCount || 0) > 0
       )
       .sort((a, b) => {
-        const diff = b[roleDef.scoreKey] - a[roleDef.scoreKey];
+        const diff =
+          Number(b[roleDef.scoreKey] || 0) -
+          Number(a[roleDef.scoreKey] || 0);
+
         if (diff !== 0) return diff;
-        return b.connectionCount - a.connectionCount;
+
+        return Number(b.connectionCount || 0) - Number(a.connectionCount || 0);
       })
       .slice(0, MAX_RANKS)
       .map((stat) => ({
@@ -134,14 +161,14 @@ function makeLeaderboardRoles(attendees, connections) {
         score: stat[roleDef.scoreKey],
       }));
 
-    return { ...roleDef, entries };
+    return {
+      ...roleDef,
+      entries,
+    };
   });
 }
 
-function formatScore(value, scoreKey) {
-  if (scoreKey === "connectionsScore") {
-    return Number(value || 0).toFixed(1);
-  }
+function formatScore(value) {
   return Math.round(Number(value || 0));
 }
 
@@ -151,41 +178,6 @@ function formatEuro(value) {
     currency: "EUR",
     maximumFractionDigits: 0,
   }).format(value || 0);
-}
-
-function Initials({ name, color, size = 46 }) {
-  const safeName = (name || "?").trim();
-  const letters =
-    safeName
-      .split(/\s+/)
-      .map((word) => word[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?";
-
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: `${color}15`,
-        border: `2px solid ${color}40`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.38,
-        fontWeight: 700,
-        color,
-        fontFamily: "'DM Serif Display', serif",
-        flexShrink: 0,
-        boxShadow: `inset 0 0 10px ${color}10`,
-      }}
-    >
-      {letters}
-    </div>
-  );
 }
 
 function PulseDot() {
@@ -218,54 +210,78 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
+  async function loadLeaderboardData() {
+    setLoading(true);
+    setErrorMessage("");
+
+    const [
+      { data: attendeesData, error: attendeesError },
+      { data: connectionsData, error: connectionsError },
+    ] = await Promise.all([
+      supabase.from(TABLE_NAME).select("*"),
+      supabase
+        .from(CONNECTIONS_TABLE)
+        .select("*")
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (attendeesError || connectionsError) {
+      console.error(
+        "Error loading leaderboard data:",
+        attendeesError || connectionsError
+      );
+      setErrorMessage("Could not load the live leaderboard.");
+      setLoading(false);
+      return;
+    }
+
+    setAttendees(attendeesData || []);
+    setConnections(connectionsData || []);
+    setLoading(false);
+  }
+
   useEffect(() => {
     let isMounted = true;
 
-    async function loadLeaderboardData() {
-      setLoading(true);
-      setErrorMessage("");
-
-      const [
-        { data: attendeesData, error: attendeesError },
-        { data: connectionsData, error: connectionsError },
-      ] = await Promise.all([
-        supabase.from(TABLE_NAME).select("*"),
-        supabase
-          .from(CONNECTIONS_TABLE)
-          .select("*")
-          .order("created_at", { ascending: true }),
-      ]);
-
+    async function init() {
       if (!isMounted) return;
-
-      if (attendeesError || connectionsError) {
-        console.error("Error loading leaderboard data:", attendeesError || connectionsError);
-        setErrorMessage("Could not load the live leaderboard.");
-        setLoading(false);
-        return;
-      }
-
-      setAttendees(attendeesData || []);
-      setConnections(connectionsData || []);
-      setLoading(false);
+      await loadLeaderboardData();
     }
 
-    loadLeaderboardData();
-    return () => { isMounted = false; };
+    init();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
     const channel = supabase
-      .channel("leaderboard-connections-realtime")
+      .channel("leaderboard-live-data")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: CONNECTIONS_TABLE },
         (payload) => {
           const newConnection = payload.new;
+
           setConnections((current) => {
-            if (current.some((c) => c.id === newConnection.id)) return current;
+            if (current.some((connection) => connection.id === newConnection.id)) {
+              return current;
+            }
+
             return [...current, newConnection];
           });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: CONNECTIONS_TABLE },
+        (payload) => {
+          setConnections((current) =>
+            current.map((connection) =>
+              connection.id === payload.new.id ? payload.new : connection
+            )
+          );
         }
       )
       .on(
@@ -273,26 +289,74 @@ export default function Leaderboard() {
         { event: "DELETE", schema: "public", table: CONNECTIONS_TABLE },
         (payload) => {
           setConnections((current) =>
-            current.filter((c) => c.id !== payload.old.id)
+            current.filter((connection) => connection.id !== payload.old.id)
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: TABLE_NAME },
+        (payload) => {
+          const newAttendee = payload.new;
+
+          setAttendees((current) => {
+            if (current.some((attendee) => attendee.id === newAttendee.id)) {
+              return current;
+            }
+
+            return [...current, newAttendee];
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: TABLE_NAME },
+        (payload) => {
+          setAttendees((current) =>
+            current.map((attendee) =>
+              attendee.id === payload.new.id ? payload.new : attendee
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: TABLE_NAME },
+        (payload) => {
+          setAttendees((current) =>
+            current.filter((attendee) => attendee.id !== payload.old.id)
           );
         }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const attendeeById = useMemo(
-    () => new Map(attendees.map((a) => [a.id, a])),
-    [attendees]
+  const visibleAttendees = useMemo(
+    () => getVisibleAttendees(attendees, connections),
+    [attendees, connections]
   );
 
-  const totalConnections = connections.length;
+  const visibleConnections = useMemo(
+    () => getVisibleConnections(visibleAttendees, connections),
+    [visibleAttendees, connections]
+  );
+
+  const attendeeById = useMemo(
+    () => new Map(visibleAttendees.map((attendee) => [attendee.id, attendee])),
+    [visibleAttendees]
+  );
+
+  const totalConnections = visibleConnections.length;
 
   const crossSector = useMemo(() => {
-    return connections.filter((c) => {
-      const scanner = attendeeById.get(c.scanner_id);
-      const scanned = attendeeById.get(c.scanned_id);
+    return visibleConnections.filter((connection) => {
+      const scanner = attendeeById.get(connection.scanner_id);
+      const scanned = attendeeById.get(connection.scanned_id);
+
       return (
         scanner &&
         scanned &&
@@ -301,7 +365,7 @@ export default function Leaderboard() {
         scanner.sector !== scanned.sector
       );
     }).length;
-  }, [connections, attendeeById]);
+  }, [visibleConnections, attendeeById]);
 
   const roles = useMemo(
     () => makeLeaderboardRoles(attendees, connections),
@@ -315,7 +379,7 @@ export default function Leaderboard() {
       <main
         style={{
           minHeight: "100vh",
-          background: "#0A0A0A",
+          background: "#080808",
           color: "#EDE9E0",
           display: "flex",
           alignItems: "center",
@@ -333,7 +397,7 @@ export default function Leaderboard() {
       <main
         style={{
           minHeight: "100vh",
-          background: "#0A0A0A",
+          background: "#080808",
           color: "#F9C7C7",
           display: "flex",
           alignItems: "center",
@@ -357,14 +421,12 @@ export default function Leaderboard() {
           from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes fadeSlideRight {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
+
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(2.2); }
         }
+
         @keyframes shimmer {
           0% { background-position: -200% center; }
           100% { background-position: 200% center; }
@@ -374,7 +436,8 @@ export default function Leaderboard() {
       <div
         style={{
           minHeight: "100vh",
-          background: "linear-gradient(170deg, #0A0A0A 0%, #121110 40%, #161412 100%)",
+          background:
+            "linear-gradient(170deg, #080808 0%, #111111 40%, #151515 100%)",
           fontFamily: "'Outfit', sans-serif",
           color: "#EDE9E0",
           display: "flex",
@@ -392,199 +455,240 @@ export default function Leaderboard() {
             transform: "translateX(-50%)",
             width: "100%",
             height: 600,
-            background: "radial-gradient(ellipse, rgba(0,128,128,0.06) 0%, transparent 60%)",
+            background:
+              "radial-gradient(ellipse, rgba(0,128,128,0.05) 0%, transparent 60%)",
             pointerEvents: "none",
           }}
         />
 
         <div
           style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
+            display: "grid",
+            gridTemplateColumns: "1fr auto 1fr",
+            alignItems: "center",
             marginBottom: 40,
             flexShrink: 0,
             animation: "fadeSlideUp 0.6s both",
           }}
         >
-          <div>
+          <div style={{ paddingLeft: 8 }}>
             <div
               style={{
-                fontFamily: "'DM Serif Display', serif",
-                fontSize: 48,
-                color: "#F0ECE4",
-                lineHeight: 1.0,
-                letterSpacing: "-0.5px",
+                fontSize: 14,
+                fontWeight: 700,
+                color: "#C0BCB5",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                textAlign: "left",
               }}
             >
               Building Ecosystems
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginTop: 8,
+              }}
+            >
+              <PulseDot />
               <span
                 style={{
-                  fontSize: 16,
-                  fontWeight: 600,
-                  color: "#8A857C",
-                  letterSpacing: "0.14em",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "#1D9E75",
+                  letterSpacing: "0.08em",
                   textTransform: "uppercase",
                 }}
               >
-                Top connectors
+                Live Connection Feed
               </span>
-              <span style={{ color: "#444", fontSize: 16 }}>·</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <PulseDot />
-                <span
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 700,
-                    color: "#1D9E75",
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Live
-                </span>
-              </div>
             </div>
           </div>
+
+          <div style={{ textAlign: "center" }}>
+            <h1
+              style={{
+                fontFamily: "'DM Serif Display', serif",
+                fontSize: 64,
+                color: "#F0ECE4",
+                lineHeight: 1,
+                letterSpacing: "-1px",
+                background:
+                  "linear-gradient(180deg, #F0ECE4 0%, #BDB9B0 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.5))",
+              }}
+            >
+              Top Connectors
+            </h1>
+          </div>
+
+          <div />
         </div>
 
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            gap: "24px",
+            alignItems: "stretch",
+          }}
+        >
           <div
             style={{
+              width: 80,
+              flexShrink: 0,
               display: "flex",
-              gap: 20,
-              padding: "0 16px",
-              animation: "fadeSlideUp 0.6s 0.2s both",
+              flexDirection: "column",
             }}
           >
-            <div style={{ width: 80, flexShrink: 0 }} />
+            <div style={{ height: 80, marginBottom: 0 }} />
 
-            {roles.map((role) => (
-              <div key={`header-${role.key}`} style={{ flex: 1, minWidth: 0, paddingLeft: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {[0, 1, 2].map((rankIndex) => {
+                const theme = RANK_THEMES[rankIndex];
+
+                return (
                   <div
+                    key={`rank-${rankIndex}`}
                     style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: "50%",
-                      background: role.color,
-                      boxShadow: `0 0 12px ${role.color}80`,
-                    }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 700,
-                      color: "#F0ECE4",
-                      fontFamily: "'DM Serif Display', serif",
-                      letterSpacing: "-0.3px",
+                      height: 90,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      animation: `fadeSlideUp 0.6s ${
+                        0.3 + rankIndex * 0.1
+                      }s both`,
                     }}
                   >
-                    {role.name}
-                  </span>
-                </div>
+                    <div
+                      style={{
+                        width: 64,
+                        height: 64,
+                        borderRadius: 16,
+                        background: theme.bg,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 22,
+                        fontWeight: 900,
+                        color: theme.text,
+                        boxShadow: `0 0 20px ${theme.glow}, inset 0 -2px 6px rgba(0,0,0,0.2)`,
+                        border: "2px solid rgba(255,255,255,0.4)",
+                      }}
+                    >
+                      {theme.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {roles.map((role, colIndex) => (
+            <div
+              key={`col-${role.key}`}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                background: "rgba(25, 25, 25, 0.4)",
+                border: "1px solid rgba(255, 255, 255, 0.05)",
+                borderRadius: 24,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+                animation: `fadeSlideUp 0.6s ${0.2 + colIndex * 0.1}s both`,
+              }}
+            >
+              <div
+                style={{
+                  padding: "20px 16px",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+                  background: `linear-gradient(180deg, ${role.color}15 0%, transparent 100%)`,
+                  textAlign: "center",
+                  height: 80,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                }}
+              >
                 <div
                   style={{
-                    fontSize: 12,
-                    color: "#6A655C",
-                    fontWeight: 600,
+                    fontSize: 24,
+                    fontWeight: 700,
+                    color: role.color,
+                    fontFamily: "'DM Serif Display', serif",
+                    letterSpacing: "-0.5px",
+                  }}
+                >
+                  {role.name}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#C0BCB5",
+                    fontWeight: 700,
                     letterSpacing: "0.1em",
                     textTransform: "uppercase",
-                    paddingLeft: 22,
+                    marginTop: 2,
                   }}
                 >
                   {role.subtitle}
                 </div>
               </div>
-            ))}
-          </div>
 
-          {[0, 1, 2].map((rankIndex) => {
-            const theme = RANK_THEMES[rankIndex];
-
-            return (
               <div
-                key={`row-${rankIndex}`}
                 style={{
+                  padding: 16,
                   display: "flex",
-                  gap: 20,
-                  alignItems: "center",
-                  background: theme.rowBg,
-                  border: `1px solid ${theme.rowBorder}`,
-                  borderRadius: 20,
-                  padding: "16px",
-                  animation: `fadeSlideRight 0.6s ${0.3 + rankIndex * 0.15}s both`,
-                  backdropFilter: "blur(10px)",
-                  boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+                  flexDirection: "column",
+                  gap: 16,
+                  flex: 1,
                 }}
               >
-                <div
-                  style={{
-                    width: 80,
-                    flexShrink: 0,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: "50%",
-                      background: theme.bg,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 18,
-                      fontWeight: 900,
-                      color: theme.text,
-                      fontFamily: "'Outfit', sans-serif",
-                      letterSpacing: "0.05em",
-                      boxShadow: `0 0 20px ${theme.glow}, inset 0 -2px 6px rgba(0,0,0,0.2)`,
-                      border: "2px solid rgba(255,255,255,0.4)",
-                    }}
-                  >
-                    {theme.label}
-                  </div>
-                </div>
-
-                {roles.map((role) => {
+                {[0, 1, 2].map((rankIndex) => {
                   const entry = role.entries[rankIndex];
+                  const theme = RANK_THEMES[rankIndex];
+
+                  const baseCardStyle = {
+                    height: 90,
+                    borderRadius: 12,
+                    padding: "16px 20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.06)",
+                    boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+                  };
 
                   if (!entry) {
                     return (
                       <div
                         key={`${role.key}-${rankIndex}-empty`}
                         style={{
-                          flex: 1,
-                          minWidth: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 14,
-                          padding: "8px",
-                          borderRadius: 12,
-                          background: "rgba(255,255,255,0.01)",
+                          ...baseCardStyle,
+                          border: "1px dashed rgba(255,255,255,0.15)",
+                          background: "transparent",
+                          justifyContent: "center",
                         }}
                       >
-                        <div
+                        <span
                           style={{
-                            width: 46,
-                            height: 46,
-                            borderRadius: "50%",
-                            background: "rgba(255,255,255,0.03)",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: "rgba(255,255,255,0.2)",
+                            letterSpacing: "0.2em",
+                            textTransform: "uppercase",
                           }}
-                        />
-                        <div
-                          style={{
-                            flex: 1,
-                            height: 12,
-                            background: "rgba(255,255,255,0.03)",
-                            borderRadius: 4,
-                          }}
-                        />
+                        >
+                          Awaiting Data
+                        </span>
                       </div>
                     );
                   }
@@ -593,77 +697,58 @@ export default function Leaderboard() {
                     <div
                       key={`${role.key}-${rankIndex}-${entry.id}`}
                       style={{
-                        flex: 1,
-                        minWidth: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 14,
-                        padding: "8px",
-                        borderRadius: 12,
-                        background: "rgba(255,255,255,0.02)",
+                        ...baseCardStyle,
+                        borderLeft: `4px solid ${theme.rankColor}`,
                       }}
                     >
-                      <Initials name={entry.name} color={role.color} />
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ flex: 1, minWidth: 0, paddingRight: 10, textAlign: "left" }}>
                         <div
                           style={{
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: 700,
                             color: "#EDE9E0",
                             whiteSpace: "nowrap",
                             overflow: "hidden",
                             textOverflow: "ellipsis",
-                            letterSpacing: "0.02em",
                           }}
                         >
                           {entry.name}
                         </div>
+
                         <div
                           style={{
-                            fontSize: 12,
-                            color: "#8A857C",
+                            fontSize: 13,
+                            color: "#C0BCB5",
                             fontWeight: 500,
-                            marginTop: 2,
+                            marginTop: 4,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                           }}
                         >
                           {entry.company}
                         </div>
                       </div>
 
-                      <div style={{ textAlign: "right", flexShrink: 0, paddingRight: 8 }}>
+                      <div style={{ textAlign: "right" }}>
                         <div
                           style={{
-                            fontSize: 26,
+                            fontSize: 32,
                             fontWeight: 800,
                             color: role.color,
-                            fontFamily: "'Outfit', sans-serif",
                             lineHeight: 1,
-                            textShadow:
-                              rankIndex === 0 ? `0 0 15px ${role.color}60` : "none",
+                            textShadow: `0 0 15px ${role.color}40`,
                           }}
                         >
-                          {formatScore(entry.score, role.scoreKey)}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 10,
-                            color: "#6A655C",
-                            fontWeight: 700,
-                            letterSpacing: "0.08em",
-                            textTransform: "uppercase",
-                            marginTop: 4,
-                          }}
-                        >
-                          {role.metric}
+                          {formatScore(entry.score)}
                         </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
         <div
@@ -680,22 +765,30 @@ export default function Leaderboard() {
         >
           <div style={{ display: "flex", gap: 36, flex: 1 }}>
             <div>
-              <span style={{ fontSize: 32, fontWeight: 800, color: "#F0ECE4" }}>
+              <span
+                style={{
+                  fontSize: 32,
+                  fontWeight: 800,
+                  color: "#F0ECE4",
+                }}
+              >
                 {totalConnections}
               </span>
+
               <span
                 style={{
                   fontSize: 12,
-                  color: "#6A655C",
+                  color: "#C0BCB5",
                   fontWeight: 700,
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
                   marginLeft: 10,
                 }}
               >
-                total connections
+                Total Connections
               </span>
             </div>
+
             <div
               style={{
                 width: 1,
@@ -704,21 +797,29 @@ export default function Leaderboard() {
                 alignSelf: "center",
               }}
             />
+
             <div>
-              <span style={{ fontSize: 32, fontWeight: 800, color: "#008080" }}>
+              <span
+                style={{
+                  fontSize: 32,
+                  fontWeight: 800,
+                  color: "#1D9E75",
+                }}
+              >
                 {crossSector}
               </span>
+
               <span
                 style={{
                   fontSize: 12,
-                  color: "#6A655C",
+                  color: "#C0BCB5",
                   fontWeight: 700,
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
                   marginLeft: 10,
                 }}
               >
-                cross-sector
+                Cross-Sector
               </span>
             </div>
           </div>
@@ -736,30 +837,32 @@ export default function Leaderboard() {
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                color: "#8A857C",
+                color: "#C0BCB5",
                 letterSpacing: "0.2em",
                 textTransform: "uppercase",
                 marginBottom: 6,
               }}
             >
-              ANBI Donation Pool
+              <span>Connection Target</span>
             </div>
+
             <div
               style={{
                 fontFamily: "'DM Serif Display', serif",
                 fontSize: 46,
-                color: "#008080",
+                color: "#1D9E75",
                 lineHeight: 1.0,
                 letterSpacing: "-1px",
-                background: "linear-gradient(90deg, #00A090, #00D0C0, #00A090)",
+                background:
+                  "linear-gradient(90deg, #1D9E75, #2ED3A1, #1D9E75)",
                 backgroundSize: "200% 100%",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 animation: "shimmer 3s ease-in-out infinite",
-                textShadow: "0 4px 20px rgba(0, 128, 128, 0.3)",
+                textShadow: "0 4px 20px rgba(29, 158, 117, 0.3)",
               }}
             >
-              {anbiPool}
+              500
             </div>
           </div>
 
@@ -776,18 +879,20 @@ export default function Leaderboard() {
               style={{
                 fontSize: 16,
                 fontWeight: 700,
-                color: "#6A655C",
+                color: "#C0BCB5",
                 letterSpacing: "0.15em",
               }}
             >
-              CCS
+              SCC
             </span>
-            <span style={{ fontSize: 16, color: "#4A453C" }}>×</span>
+
+            <span style={{ fontSize: 16, color: "#C0BCB5" }}>×</span>
+
             <span
               style={{
                 fontSize: 16,
                 fontWeight: 800,
-                color: "#008080",
+                color: "#1D9E75",
                 letterSpacing: "0.1em",
               }}
             >

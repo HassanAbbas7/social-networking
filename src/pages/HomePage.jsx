@@ -23,6 +23,13 @@ export default function HomePage() {
           </button>
 
           <button
+            onClick={() => navigate("/leaderboard")}
+            className="w-full rounded-2xl bg-gray-900 px-5 py-4 text-white font-medium hover:bg-gray-700 transition"
+          >
+            Leaderboard
+          </button>
+
+          <button
             onClick={() => navigate("/admin")}
             className="w-full rounded-2xl bg-gray-900 px-5 py-4 text-white font-medium hover:bg-gray-700 transition"
           >

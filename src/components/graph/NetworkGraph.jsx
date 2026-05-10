@@ -29,6 +29,14 @@ function getSafeNumber(value, fallback) {
   return Number.isFinite(value) ? value : fallback;
 }
 
+function getNodeRadius(d) {
+  return Math.max(14, Math.min(36, 8 + d.connectionCount * 2.5));
+}
+
+function getDisplayedName(d) {
+  return !DEVELOPER_MODE ? d.name?.split(" ")[0] || "" : d.name || "";
+}
+
 function NetworkGraph({
   attendees,
   connections,
@@ -70,17 +78,28 @@ function NetworkGraph({
   }, [attendees, connections]);
 
   const getNodeColor = (node) => {
-    console.log(node)
-  if (revealRoles) {
-    return roleColors[node.role] || "#888780";
-  }
+    if (revealRoles && node.role) {
+      return roleColors[node.role] || "#888780";
+    }
+    const sectorKey = (node.sector || "other").toLowerCase().replace(/\s+/g, "_");
+    return sectorColors[sectorKey] || "#888780";
+  };
 
-  return sectorColors[node.sector.toLowerCase()] || "#888780";
-};
+function getLabelCollisionRadius(d) {
+  const name = !DEVELOPER_MODE
+    ? d.name?.split(" ")[0] || ""
+    : d.name || "";
 
+  const fontSize = 16;
+  const estimatedTextWidth = name.length * fontSize * 0.55;
+  const nodeRadius = getNodeRadius(d);
+
+  return nodeRadius + estimatedTextWidth + 10;
+}
   useEffect(() => {
     dimensionsRef.current = dimensions;
   }, [dimensions]);
+
 
   useEffect(() => {
     function updateDimensions() {
@@ -176,19 +195,19 @@ function NetworkGraph({
         d3
           .forceLink([])
           .id((d) => d.id)
-          .distance(90)
+          .distance(120)
           .strength(0.6)
       )
-      .force("charge", d3.forceManyBody().strength(-120))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("x", d3.forceX(width / 2).strength(0.045))
-      .force("y", d3.forceY(height / 2).strength(0.06))
+      .force("charge", d3.forceManyBody().strength(-450))
+      .force("center", null)
+      .force("x", d3.forceX(width / 2).strength((d) => d.connectionCount > 0 ? 0.045 : 0.012))
+      .force("y", d3.forceY(height / 2).strength((d) => d.connectionCount > 0 ? 0.06 : 0.015))
       .force(
         "collision",
         d3
           .forceCollide()
-          .radius((d) => 10 + d.connectionCount * 1.2)
-          .iterations(2)
+          .radius(getLabelCollisionRadius)
+          .iterations(4)
       );
 
     simulation.on("tick", () => {
@@ -239,8 +258,8 @@ function NetworkGraph({
 
       if (labelSelectionRef.current) {
         labelSelectionRef.current
-          .attr("x", (d) => getSafeNumber(d.x, currentWidth / 2) + 10)
-          .attr("y", (d) => getSafeNumber(d.y, currentHeight / 2) + 3);
+          .attr("x", (d) => getSafeNumber(d.x, currentWidth / 2) + getNodeRadius(d) + 5)
+          .attr("y", (d) => getSafeNumber(d.y, currentHeight / 2) + 5)
       }
     });
 
@@ -387,15 +406,15 @@ function NetworkGraph({
     simulation
       .force("link")
       .links(nextLinks)
-      .distance(90)
+      .distance(120)
       .strength(0.6);
 
     simulation.force(
       "collision",
       d3
         .forceCollide()
-        .radius((d) => 10 + d.connectionCount * 1.2)
-        .iterations(2)
+        .radius(getLabelCollisionRadius)
+        .iterations(4)
     );
 
     linkGroupRef.current.selectAll("line").interrupt();
@@ -425,8 +444,16 @@ function NetworkGraph({
               const target = nodeByIdRef.current.get(getNodeId(d.target));
               return getSafeNumber(target?.y, height / 2);
             })
-            .attr("stroke", "#8ec5ad")
-            .attr("stroke-width", 1.4)
+            .attr("stroke", (d) => {
+              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
+              return (sNode && tNode && sNode.sector !== tNode.sector) ? "#008080" : "#B0ACA4";
+            })
+            .attr("stroke-width", (d) => {
+              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
+              return (sNode && tNode && sNode.sector !== tNode.sector) ? 2.5 : 1.5;
+            })
             .attr("stroke-opacity", 0)
             .attr("stroke-linecap", "round")
             .attr("stroke-dasharray", (d) =>
@@ -436,14 +463,30 @@ function NetworkGraph({
               enter
                 .transition()
                 .duration(500)
-                .attr("stroke-opacity", 0.42)
+                .attr("stroke-opacity", (d) => {
+                  const sNode = nodeByIdRef.current.get(getNodeId(d.source));
+                  const tNode = nodeByIdRef.current.get(getNodeId(d.target));
+                  return (sNode && tNode && sNode.sector !== tNode.sector) ? 0.6 : 0.4;
+                })
                 .attr("stroke-dasharray", null)
             ),
         (update) =>
           update
-            .attr("stroke", "#8ec5ad")
-            .attr("stroke-width", 1.4)
-            .attr("stroke-opacity", 0.42)
+            .attr("stroke", (d) => {
+              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
+              return (sNode && tNode && sNode.sector !== tNode.sector) ? "#008080" : "#B0ACA4";
+            })
+            .attr("stroke-width", (d) => {
+              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
+              return (sNode && tNode && sNode.sector !== tNode.sector) ? 2.5 : 1.5;
+            })
+            .attr("stroke-opacity", (d) => {
+              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
+              return (sNode && tNode && sNode.sector !== tNode.sector) ? 0.6 : 0.4;
+            })
             .attr("stroke-linecap", "round"),
         (exit) => exit.interrupt().remove()
       );
@@ -453,14 +496,56 @@ function NetworkGraph({
       .data(nextNodes, (d) => d.id)
       .join(
         (enter) => {
+
+          // This was glowless and flat
+          // const enteredNodes = enter
+          //   .append("circle")
+          //   .attr("cx", (d) => getSafeNumber(d.x, width / 2))
+          //   .attr("cy", (d) => getSafeNumber(d.y, height / 2))
+          //   .attr("r", 0)
+          //   .attr("fill", getNodeColor)
+          //   .attr("stroke", "rgba(255,255,255,0.15)")
+          //   .attr("stroke-width", 1.5)
+          //-----------------------------------------
+          // Add radial gradient defs per node
+          const defs = d3.select(svgRef.current).select("defs").empty()
+            ? d3.select(svgRef.current).append("defs")
+            : d3.select(svgRef.current).select("defs");
+
+          enter.each(function(d) {
+            const color = getNodeColor(d);
+            const gradId = `node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")}`;
+            
+            if (defs.select(`#${gradId}`).empty()) {
+              const grad = defs.append("radialGradient")
+                .attr("id", gradId)
+                .attr("cx", "35%")
+                .attr("cy", "35%")
+                .attr("r", "65%");
+              grad.append("stop").attr("offset", "0%").attr("stop-color", d3.color(color).brighter(0.8));
+              grad.append("stop").attr("offset", "100%").attr("stop-color", color);
+            }
+          });
+
           const enteredNodes = enter
             .append("circle")
             .attr("cx", (d) => getSafeNumber(d.x, width / 2))
             .attr("cy", (d) => getSafeNumber(d.y, height / 2))
             .attr("r", 0)
-            .attr("fill", getNodeColor)
-            .attr("stroke", "#d9d9d4")
-            .attr("stroke-width", 1.5)
+            .attr("fill", (d) => {
+              const gradId = `node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")}`;
+              return `url(#${gradId})`;
+            })
+            .attr("stroke", (d) => {
+              const color = getNodeColor(d);
+              return d3.color(color).brighter(0.3).formatHex();
+            })
+            .attr("stroke-width", 2)
+            .attr("stroke-opacity", 0.4)
+            .style("filter", (d) => {
+              const color = getNodeColor(d);
+              return `drop-shadow(0 0 6px ${color}66)`;
+            })
             .call(
               d3
                 .drag()
@@ -497,20 +582,44 @@ function NetworkGraph({
           enteredNodes
             .transition()
             .duration(500)
-            .attr("r", (d) => 4 + d.connectionCount * 0.9);
+            .attr("r", (d) => getNodeRadius(d));
 
           return enteredNodes;
         },
+        // (update) =>
+        //   update.call((update) =>
+        //     update
+        //       .transition()
+        //       .duration(1000)
+        //       .attr("fill", getNodeColor)
+        //       .transition()
+        //       .duration(300)
+        //       .attr("r", (d) => 4 + d.connectionCount * 0.9)
+        //   ),
         (update) =>
-          update.call((update) =>
-            update
+          update.call((sel) => {
+            sel.each(function(d) {
+              const color = getNodeColor(d);
+              const gradId = `node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")}`;
+              const defs = d3.select(svgRef.current).select("defs");
+              defs.select(`#${gradId}`).remove();
+              const grad = defs.append("radialGradient")
+                .attr("id", gradId)
+                .attr("cx", "35%").attr("cy", "35%").attr("r", "65%");
+              grad.append("stop").attr("offset", "0%").attr("stop-color", d3.color(color).brighter(0.8));
+              grad.append("stop").attr("offset", "100%").attr("stop-color", color);
+            });
+
+            sel
               .transition()
               .duration(1000)
-              .attr("fill", getNodeColor)
+              .attr("fill", (d) => `url(#node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")})`)
+              .attr("stroke", (d) => d3.color(getNodeColor(d)).brighter(0.3).formatHex())
+              .style("filter", (d) => `drop-shadow(0 0 6px ${getNodeColor(d)}66)`)
               .transition()
               .duration(300)
-              .attr("r", (d) => 4 + d.connectionCount * 0.9)
-          ),
+              .attr("r", (d) => getNodeRadius(d));
+          }),
         (exit) =>
           exit
             .transition()
@@ -537,15 +646,18 @@ function NetworkGraph({
             // } else {
             //   .text((d) => d.name || "")
             // }
-            .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "" : d.name || "")
-            .attr("x", (d) => getSafeNumber(d.x, width / 2) + 10)
+            .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "": d.name || "")
+            .attr("x", (d) => getSafeNumber(d.x, width / 2) + getNodeRadius(d) + 5)
             .attr("y", (d) => getSafeNumber(d.y, height / 2) + 3)
-            .attr("font-size", 10)
+            .attr("font-size", 16)
             .attr("font-weight", 500)
-            .attr("fill", "#4b4b47")
-            .attr("paint-order", "stroke")
-            .attr("stroke", "#f7f7f5")
-            .attr("stroke-width", 3)
+            .attr("fill", "#2A2826")
+            .attr("paint-order", null)
+            .attr("stroke", null)
+            .attr("stroke-width", null)
+            .style("filter", "drop-shadow(0 1px 2px rgba(255,255,255,0.8))")
+            .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif")
+            .style("letter-spacing", "0.01em")
             .attr("opacity", 0)
             .style("pointer-events", "none")
             .call((enter) =>
@@ -583,10 +695,10 @@ function NetworkGraph({
         .raise()
         .transition()
         .duration(140)
-        .attr("r", (d) => 6 + d.connectionCount)
+        .attr("r", (d) => getNodeRadius(d) + 6)
         .transition()
         .duration(420)
-        .attr("r", (d) => 4 + d.connectionCount * 0.9);
+        .attr("r", (d) => getNodeRadius(d));
 
       simulation.alphaTarget(0.06).restart();
 

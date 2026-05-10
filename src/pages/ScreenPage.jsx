@@ -229,17 +229,18 @@ function ScreenPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f7f5] text-[#1f1f1d] flex flex-col">
+    // <main className="min-h-screen bg-[#f7f7f5] text-[#1f1f1d] flex flex-col">
+    <main className="min-h-screen bg-[#FAFAF8] text-[#1A1917] flex flex-col">
       <section
         className={
           isGraphFullscreen
-            ? "fixed inset-0 z-50 bg-[#f7f7f5] p-4"
+            ? "fixed inset-0 z-50 bg-[#FAFAF8] p-4"
             : "relative flex-1 min-h-[440px] px-6 pt-4"
         }
       >
         <button
-          className="absolute right-6 top-6 z-10 rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
-          onClick={() => setIsGraphFullscreen((v) => !v)}
+          className="absolute right-6 top-6 z-10 rounded-xl border border-black/[0.06] bg-white/90 backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#3A3630] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-white transition-colors"
+          onClick={() => setIsGraphFullscreen((value) => !value)}
         >
           {isGraphFullscreen ? "Exit fullscreen" : "Fullscreen"}
         </button>
@@ -253,13 +254,29 @@ function ScreenPage() {
           sectorColors={SECTOR_COLORS}
           roleColors={ROLE_COLORS}
         />
+
+        {isGraphFullscreen && (
+          <div className="absolute bottom-6 left-6 z-10 flex items-center gap-5 rounded-2xl bg-white/80 backdrop-blur-sm border border-black/[0.04] px-5 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+            {revealRoles
+              ? Object.entries(ROLE_COLORS).map(([role, color]) => (
+                  <LegendDot key={role} color={color} label={role} />
+                ))
+              : Object.entries(SECTOR_COLORS).map(([key, color]) => (
+                  <LegendDot
+                    key={key}
+                    color={color}
+                    label={key.replace("_", " ")}
+                  />
+                ))}
+          </div>
+        )}
       </section>
 
       {!isGraphFullscreen && (
         <footer className="px-6 pb-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex gap-2">
-              <button
+              {/* <button
                 className="rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
                 onClick={() => setShowNames((v) => !v)}
               >
@@ -276,6 +293,26 @@ function ScreenPage() {
               <button
                 className="rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
                 onClick={() => setLayoutVersion((v) => v + 1)}
+              >
+                Reset
+              </button> */}
+              <button
+                className="rounded-xl border border-black/[0.06] bg-white/90 backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#3A3630] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-white transition-colors"
+                onClick={() => setShowNames((value) => !value)}
+              >
+                Toggle Names
+              </button>
+
+              <button
+                className="rounded-xl border border-[#008080]/20 bg-[#008080]/[0.06] backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#008080] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-[#008080]/10 transition-colors"
+                onClick={handleRevealRoles}
+              >
+                {revealRoles ? "Show sectors ↗" : "Reveal roles ↗"}
+              </button>
+
+              <button
+                className="rounded-xl border border-black/[0.06] bg-white/90 backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#3A3630] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-white transition-colors"
+                onClick={() => setLayoutVersion((value) => value + 1)}
               >
                 Reset
               </button>
@@ -318,11 +355,20 @@ function ScreenPage() {
   );
 }
 
+// old stat component
+// function Stat({ label, value }) {
+//   return (
+//     <div className="rounded-xl bg-[#efeee9] px-4 py-3 text-center">
+//       <div className="text-xl font-bold tabular-nums">{value}</div>
+//       <div className="text-xs text-[#3f3f3a]">{label}</div>
+//     </div>
+//   );
+// }
 function Stat({ label, value }) {
   return (
-    <div className="rounded-xl bg-[#efeee9] px-4 py-3 text-center">
-      <div className="text-xl font-bold tabular-nums">{value}</div>
-      <div className="text-xs text-[#3f3f3a]">{label}</div>
+    <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-black/[0.04] px-5 py-4 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="text-2xl font-bold tabular-nums text-[#1A1917]">{value}</div>
+      <div className="text-[11px] font-medium text-[#9A958D] uppercase tracking-wider mt-1">{label}</div>
     </div>
   );
 }

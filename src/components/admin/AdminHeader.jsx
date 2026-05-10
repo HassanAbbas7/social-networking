@@ -72,6 +72,10 @@ export default function AdminHeader() {
                 Records
               </NavLink>
 
+              <NavLink to="/leaderboard" className={linkClass}>
+
+                Leaderboard
+              </NavLink>
               <NavLink to="/" className={linkClass}>
                 Live Screen
               </NavLink>
