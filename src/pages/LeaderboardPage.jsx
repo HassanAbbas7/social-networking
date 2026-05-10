@@ -210,50 +210,48 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function loadLeaderboardData() {
-    setLoading(true);
-    setErrorMessage("");
+  async function loadLeaderboardData(showLoading = false) {
+  if (showLoading) setLoading(true);
 
-    const [
-      { data: attendeesData, error: attendeesError },
-      { data: connectionsData, error: connectionsError },
-    ] = await Promise.all([
-      supabase.from(TABLE_NAME).select("*"),
-      supabase
-        .from(CONNECTIONS_TABLE)
-        .select("*")
-        .order("created_at", { ascending: true }),
-    ]);
+  setErrorMessage("");
 
-    if (attendeesError || connectionsError) {
-      console.error(
-        "Error loading leaderboard data:",
-        attendeesError || connectionsError
-      );
-      setErrorMessage("Could not load the live leaderboard.");
-      setLoading(false);
-      return;
-    }
+  const [
+    { data: attendeesData, error: attendeesError },
+    { data: connectionsData, error: connectionsError },
+  ] = await Promise.all([
+    supabase.from(TABLE_NAME).select("*"),
+    supabase
+      .from(CONNECTIONS_TABLE)
+      .select("*")
+      .order("created_at", { ascending: true }),
+  ]);
 
-    setAttendees(attendeesData || []);
-    setConnections(connectionsData || []);
+  if (attendeesError || connectionsError) {
+    console.error(
+      "Error loading leaderboard data:",
+      attendeesError || connectionsError
+    );
+    setErrorMessage("Could not load the live leaderboard.");
     setLoading(false);
+    return;
   }
 
+  setAttendees(attendeesData || []);
+  setConnections(connectionsData || []);
+  setLoading(false);
+}
+
   useEffect(() => {
-    let isMounted = true;
+  loadLeaderboardData(true);
 
-    async function init() {
-      if (!isMounted) return;
-      await loadLeaderboardData();
-    }
+  const intervalId = setInterval(() => {
+    loadLeaderboardData(false);
+  }, 3000);
 
-    init();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  return () => {
+    clearInterval(intervalId);
+  };
+}, []);
 
   useEffect(() => {
     const channel = supabase
