@@ -258,8 +258,11 @@ function getLabelCollisionRadius(d) {
 
       if (labelSelectionRef.current) {
         labelSelectionRef.current
-          .attr("x", (d) => getSafeNumber(d.x, currentWidth / 2) + getNodeRadius(d) + 5)
-          .attr("y", (d) => getSafeNumber(d.y, currentHeight / 2) + 5)
+          .attr("transform", (d) => {
+            const x = getSafeNumber(d.x, currentWidth / 2) + getNodeRadius(d) + 5;
+            const y = getSafeNumber(d.y, currentHeight / 2);
+            return `translate(${x},${y})`;
+          });
       }
     });
 
@@ -634,42 +637,121 @@ function getLabelCollisionRadius(d) {
       }`;
     });
 
+    // const labels = labelGroupRef.current
+    //   .selectAll("text")
+    //   .data(nextNodes, (d) => d.id)
+    //   .join(
+    //     (enter) =>
+    //       enter
+    //         .append("text")
+    //         // if (!DEVELOPER_MODE) {
+    //         // .text((d) => d.name?.split(" ")[0] || "")
+    //         // } else {
+    //         //   .text((d) => d.name || "")
+    //         // }
+    //         .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "": d.name || "")
+    //         .attr("x", (d) => getSafeNumber(d.x, width / 2) + getNodeRadius(d) + 5)
+    //         .attr("y", (d) => getSafeNumber(d.y, height / 2) + 3)
+    //         .attr("font-size", 16)
+    //         .attr("font-weight", 500)
+    //         .attr("fill", "#2A2826")
+    //         .attr("paint-order", null)
+    //         .attr("stroke", null)
+    //         .attr("stroke-width", null)
+    //         .style("filter", "drop-shadow(0 1px 2px rgba(255,255,255,0.8))")
+    //         .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif")
+    //         .style("letter-spacing", "0.01em")
+    //         .attr("opacity", 0)
+    //         .style("pointer-events", "none")
+    //         .call((enter) =>
+    //           enter
+    //             .transition()
+    //             .duration(400)
+    //             .attr("opacity", showNames ? 1 : 0)
+    //         ),
+    //     (update) =>
+    //       update
+    //         .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "": d.name || "")
+    //         .attr("opacity", showNames ? 1 : 0),
+    //     (exit) =>
+    //       exit
+    //         .transition()
+    //         .duration(300)
+    //         .attr("opacity", 0)
+    //         .remove()
+    //   );
+
     const labels = labelGroupRef.current
-      .selectAll("text")
+      .selectAll("g.node-label")
       .data(nextNodes, (d) => d.id)
       .join(
-        (enter) =>
-          enter
-            .append("text")
-            // if (!DEVELOPER_MODE) {
-            // .text((d) => d.name?.split(" ")[0] || "")
-            // } else {
-            //   .text((d) => d.name || "")
-            // }
-            .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "": d.name || "")
-            .attr("x", (d) => getSafeNumber(d.x, width / 2) + getNodeRadius(d) + 5)
-            .attr("y", (d) => getSafeNumber(d.y, height / 2) + 3)
-            .attr("font-size", 16)
-            .attr("font-weight", 500)
-            .attr("fill", "#2A2826")
-            .attr("paint-order", null)
-            .attr("stroke", null)
-            .attr("stroke-width", null)
-            .style("filter", "drop-shadow(0 1px 2px rgba(255,255,255,0.8))")
-            .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif")
-            .style("letter-spacing", "0.01em")
+        (enter) => {
+          const g = enter
+            .append("g")
+            .attr("class", "node-label")
+            .attr("transform", (d) => {
+              const x = getSafeNumber(d.x, width / 2) + getNodeRadius(d) + 5;
+              const y = getSafeNumber(d.y, height / 2);
+              return `translate(${x},${y})`;
+            })
             .attr("opacity", 0)
-            .style("pointer-events", "none")
-            .call((enter) =>
-              enter
-                .transition()
-                .duration(400)
-                .attr("opacity", showNames ? 1 : 0)
-            ),
-        (update) =>
-          update
-            .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "": d.name || "")
-            .attr("opacity", showNames ? 1 : 0),
+            .style("pointer-events", "none");
+
+          g.append("text")
+            .attr("class", "label-name")
+            .text((d) => !DEVELOPER_MODE ? d.name?.split(" ")[0] || "" : d.name || "")
+            .attr("y", 0)
+            .attr("font-size", 15)
+            .attr("font-weight", 600)
+            .attr("fill", "#2A2826")
+            .style("filter", "drop-shadow(0 1px 2px rgba(255,255,255,0.8))")
+            .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif");
+
+          g.append("text")
+            .attr("class", "label-sub")
+            .text((d) => {
+              if (revealRoles && d.role) return `${d.role} · ${(d.sector || "").replace(/_/g, " ")}`;
+              return (d.sector || "").replace(/_/g, " ");
+            })
+            .attr("y", 14)
+            .attr("font-size", 10)
+            .attr("font-weight", 500)
+            .attr("fill", (d) => {
+              if (revealRoles && d.role) return roleColors[d.role] || "#888780";
+              const sectorKey = (d.sector || "other").toLowerCase().replace(/\s+/g, "_");
+              return sectorColors[sectorKey] || "#888780";
+            })
+            .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif")
+            .style("letter-spacing", "0.04em")
+            .style("text-transform", "capitalize")
+            .attr("opacity", showNames ? 1 : 0);
+
+          g.transition()
+            .duration(400)
+            .attr("opacity", 1);
+
+          return g;
+        },
+        (update) => {
+          update.select(".label-name")
+            .text((d) => !DEVELOPER_MODE ? d.name?.split(" ")[0] || "" : d.name || "");
+
+          update.select(".label-sub")
+            .text((d) => {
+              if (revealRoles && d.role) return `${d.role} · ${(d.sector || "").replace(/_/g, " ")}`;
+              return (d.sector || "").replace(/_/g, " ");
+            })
+            .attr("fill", (d) => {
+              if (revealRoles && d.role) return roleColors[d.role] || "#888780";
+              const sectorKey = (d.sector || "other").toLowerCase().replace(/\s+/g, "_");
+              return sectorColors[sectorKey] || "#888780";
+            })
+            .attr("opacity", showNames ? 1 : 0);
+
+          update.attr("opacity", 1);
+
+          return update;
+        },
         (exit) =>
           exit
             .transition()

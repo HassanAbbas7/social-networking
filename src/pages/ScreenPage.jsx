@@ -300,7 +300,7 @@ function ScreenPage() {
                 className="rounded-xl border border-black/[0.06] bg-white/90 backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#3A3630] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-white transition-colors"
                 onClick={() => setShowNames((value) => !value)}
               >
-                Toggle Names
+                Toggle
               </button>
 
               <button
