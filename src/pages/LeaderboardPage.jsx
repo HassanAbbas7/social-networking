@@ -46,10 +46,10 @@ const ROLE_DEFINITIONS = [
     key: "catalyst",
     roleName: "Catalyst",
     name: "Catalyst",
-    subtitle: "Fastest networker",
+    subtitle: "Most connected",
     color: "#D85A30",
-    metric: "per hour",
-    scoreKey: "connectionsPerHour",
+    metric: "connections",
+    scoreKey: "connectionCount",
   },
   {
     key: "builder",
@@ -139,7 +139,7 @@ function makeLeaderboardRoles(attendees, connections) {
 }
 
 function formatScore(value, scoreKey) {
-  if (scoreKey === "connectionsPerHour") {
+  if (scoreKey === "connectionsScore") {
     return Number(value || 0).toFixed(1);
   }
   return Math.round(Number(value || 0));
