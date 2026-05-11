@@ -794,7 +794,7 @@ export default function Leaderboard() {
           }}
         >
           <div style={{ display: "flex", gap: 36, flex: 1 }}>
-            <div>
+            {/* <div>
               <span
                 style={{
                   fontSize: 32,
@@ -817,7 +817,7 @@ export default function Leaderboard() {
               >
                 Total Connections
               </span>
-            </div>
+            </div> */}
 
             <div
               style={{
@@ -892,7 +892,7 @@ export default function Leaderboard() {
                 textShadow: "0 4px 20px rgba(29, 158, 117, 0.3)",
               }}
             >
-              500
+              {totalConnections}/500
             </div>
 
           </div>
