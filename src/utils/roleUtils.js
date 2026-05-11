@@ -1,216 +1,289 @@
 /**
  * roleUtils.js — single source of truth for role assignment.
  *
- * Both ScreenPage and Leaderboard import from here so they always
- * produce identical role assignments for the same data.
+ * This version uses ONLY rows from public.attendee_stats.
+ *
+ * Expected attendee_stats columns:
+ *   user_id
+ *   total_connections
+ *   sectors_reached
+ *   cross_sector_count
+ *   cross_sector_ratio
+ *
+ * Optional display columns, recommended if Leaderboard should show names:
+ *   name
+ *   full_name
+ *   first_name
+ *   last_name
+ *   email
+ *   company
+ *   organization
+ *   organisation
+ *   company_name
+ *   sector
  */
 
-function getConnectionTime(connection) {
-  const raw =
-    connection.created_at || connection.inserted_at || connection.timestamp;
-  const time = raw ? new Date(raw).getTime() : NaN;
-  return Number.isFinite(time) ? time : null;
-}
+const MAX_PER_COMPETITIVE_ROLE = 3;
 
-function addUndirectedEdge(adjacency, a, b) {
-  if (!adjacency.has(a)) adjacency.set(a, new Set());
-  if (!adjacency.has(b)) adjacency.set(b, new Set());
-  adjacency.get(a).add(b);
-  adjacency.get(b).add(a);
+/**
+ * normalizeAttendeeStat
+ *
+ * Converts one attendee_stats row into the stat shape used by assignRoles
+ * and Leaderboard.
+ */
+export function normalizeAttendeeStat(row = {}) {
+  const id = row.user_id || row.id;
+
+  return {
+    id,
+    user_id: id,
+
+    /**
+     * Keep the raw row available so UI helpers can read optional display
+     * fields such as name, company, email, sector, etc.
+     */
+    attendee: row,
+    raw: row,
+
+    connectionsFirstHour: Number(row.connections_first_hour ?? 0),
+    connectionCount: Number(row.total_connections ?? 0),
+    crossSectorCount: Number(row.cross_sector_count ?? 0),
+    sectorsReachedCount: Number(row.sectors_reached ?? 0),
+    crossSectorRatio: Number(row.cross_sector_ratio ?? 0),
+
+    /**
+     * These are not available in your current attendee_stats view.
+     * They are kept as safe defaults so existing UI code does not break.
+     */
+    mutualConnectionCount: Number(row.mutual_connection_count ?? 0),
+    firstConnectionAt: row.first_connection_at ?? null,
+    lastConnectionAt: row.last_connection_at ?? null,
+    connectionsPerHour: Number(row.connections_per_hour ?? 0),
+  };
 }
 
 /**
  * computeAttendeeStats
- * Derives per-attendee metrics from raw DB rows.
- * Returns an array of stat objects keyed by attendee id.
+ *
+ * Takes rows from attendee_stats and normalizes them.
+ *
+ * @param {Array} attendeeStatsRows - Rows from public.attendee_stats.
+ * @returns {Array} Normalized stat objects.
  */
-export function computeAttendeeStats(attendees, connections) {
-  const attendeeById = new Map(attendees.map((a) => [a.id, a]));
-  const stats = new Map();
-  const adjacency = new Map();
-
-  attendees.forEach((attendee) => {
-    stats.set(attendee.id, {
-      id: attendee.id,
-      attendee,
-      connectionCount: 0,
-      crossSectorCount: 0,
-      sectorsReached: new Set(),
-      sectorsReachedCount: 0,
-      mutualConnectionCount: 0,
-      firstConnectionAt: null,
-      lastConnectionAt: null,
-      connectionsPerHour: 0,
-    });
-    adjacency.set(attendee.id, new Set());
-  });
-
-  connections.forEach((connection) => {
-    const scannerId = connection.scanner_id;
-    const scannedId = connection.scanned_id;
-    const scanner = attendeeById.get(scannerId);
-    const scanned = attendeeById.get(scannedId);
-
-    if (!scanner || !scanned || scannerId === scannedId) return;
-
-    const scannerStats = stats.get(scannerId);
-    const scannedStats = stats.get(scannedId);
-    if (!scannerStats || !scannedStats) return;
-
-    scannerStats.connectionCount += 1;
-    scannedStats.connectionCount += 1;
-
-    if (scanned.sector) scannerStats.sectorsReached.add(scanned.sector);
-    if (scanner.sector) scannedStats.sectorsReached.add(scanner.sector);
-
-    if (
-      scanner.sector &&
-      scanned.sector &&
-      scanner.sector !== scanned.sector
-    ) {
-      scannerStats.crossSectorCount += 1;
-      scannedStats.crossSectorCount += 1;
-    }
-
-    const time = getConnectionTime(connection);
-    if (time !== null) {
-      [scannerStats, scannedStats].forEach((stat) => {
-        stat.firstConnectionAt =
-          stat.firstConnectionAt === null
-            ? time
-            : Math.min(stat.firstConnectionAt, time);
-        stat.lastConnectionAt =
-          stat.lastConnectionAt === null
-            ? time
-            : Math.max(stat.lastConnectionAt, time);
-      });
-    }
-
-    addUndirectedEdge(adjacency, scannerId, scannedId);
-  });
-
-  stats.forEach((stat, attendeeId) => {
-    stat.sectorsReachedCount = stat.sectorsReached.size;
-
-    // Mutual connections = neighbours-of-neighbours not already direct neighbours
-    const neighbours = adjacency.get(attendeeId) || new Set();
-    const mutualConnections = new Set();
-
-    neighbours.forEach((neighbourId) => {
-      const neighboursOfNeighbour = adjacency.get(neighbourId) || new Set();
-      neighboursOfNeighbour.forEach((candidateId) => {
-        if (candidateId !== attendeeId && !neighbours.has(candidateId)) {
-          mutualConnections.add(candidateId);
-        }
-      });
-    });
-
-    stat.mutualConnectionCount = mutualConnections.size;
-
-    if (
-      stat.connectionCount > 0 &&
-      stat.firstConnectionAt !== null &&
-      stat.lastConnectionAt !== null
-    ) {
-      const hours = Math.max(
-        1,
-        (stat.lastConnectionAt - stat.firstConnectionAt) / (1000 * 60 * 60)
-      );
-      stat.connectionsPerHour = stat.connectionCount / hours;
-    }
-  });
-
-  return [...stats.values()];
+export function computeAttendeeStats(attendeeStatsRows = []) {
+  return attendeeStatsRows.map(normalizeAttendeeStat);
 }
 
 /**
  * assignRoles
- * Takes the output of computeAttendeeStats and stamps a role onto each entry.
  *
- * Priority order (first match wins):
- *   1. Anchor    — top 15% by total connection count
+ * Priority order, first match wins unless that role is already full:
+ *   1. Anchor    — top 15% by total connection count, max 3
  *   2. Connector — top 30% of remaining candidates with ≥3 connections,
- *                  sorted by cross-sector ratio (descending)
- *   3. Explorer  — ≥3 sectors reached AND cross-sector ratio > 0.5
- *   4. Catalyst  — top 30% by total connection count, not yet assigned
- *   5. Builder   — everyone else
+ *                  sorted by cross-sector ratio, descending, max 3
+ *   3. Explorer  — ≥3 sectors reached AND cross-sector ratio > 0.5, max 3
+ *   4. Catalyst  — top 30% by total connection count, not yet assigned, max 3
+ *   5. Builder   — everyone else, uncapped
  *
- * Returns an array of stat objects with a `role` field added.
+ * Important behavior:
+ *   If an attendee qualifies for a role but that role already has 3 people,
+ *   they remain unassigned and continue to the next lower-precedence role check.
  */
-export function assignRoles(stats) {
+
+
+export function assignRoles(stats = []) {
   const total = stats.length;
 
-  const sorted = [...stats].sort(
-    (a, b) => b.connectionCount - a.connectionCount
-  );
+  if (total === 0) {
+    return [];
+  }
+
+  const sorted = [...stats].sort((a, b) => {
+    const connectionDiff =
+      Number(b.connectionCount || 0) - Number(a.connectionCount || 0);
+
+    if (connectionDiff !== 0) return connectionDiff;
+
+    return String(a.id || "").localeCompare(String(b.id || ""));
+  });
 
   const assigned = new Set();
   const roleById = new Map();
+  const roleCounts = new Map();
 
-  const assign = (id, role) => {
-    assigned.add(id);
-    roleById.set(id, role);
+  // NEW: Catalyst is tracked independently.
+  const catalystIds = new Set();
+
+  const canAssignRole = (role) => {
+    if (role === "Builder") return true;
+
+    return Number(roleCounts.get(role) || 0) < MAX_PER_COMPETITIVE_ROLE;
   };
 
-  // 1. Anchor — top 15%
+  const assign = (id, role) => {
+    if (!canAssignRole(role)) return false;
+
+    assigned.add(id);
+    roleById.set(id, role);
+    roleCounts.set(role, Number(roleCounts.get(role) || 0) + 1);
+
+    return true;
+  };
+
+  const assignFromCandidates = (candidates, role, predicate = () => true) => {
+    for (const stat of candidates) {
+      if (assigned.has(stat.id)) continue;
+      if (!predicate(stat)) continue;
+
+      if (!canAssignRole(role)) break;
+
+      assign(stat.id, role);
+    }
+  };
+
+  // 1. Anchor — top 15% by total connection count, max 3.
   const anchorCutoff = Math.max(1, Math.ceil(total * 0.15));
-  sorted.slice(0, anchorCutoff).forEach((s) => assign(s.id, "Anchor"));
+  assignFromCandidates(sorted.slice(0, anchorCutoff), "Anchor");
 
-  // 2. Connector — top 30% of remaining candidates with ≥3 connections,
-  //               ranked by cross-sector ratio
+  // 2. Connector — top 30% of candidates with ≥3 connections,
+  // ranked by cross-sector ratio, max 3.
   const connectorCandidates = stats
-    .filter((s) => !assigned.has(s.id) && s.connectionCount >= 3)
+    .filter((stat) => stat.connectionCount >= 3)
     .sort((a, b) => {
-      const aRatio =
-        a.connectionCount === 0 ? 0 : a.crossSectorCount / a.connectionCount;
-      const bRatio =
-        b.connectionCount === 0 ? 0 : b.crossSectorCount / b.connectionCount;
-      return bRatio - aRatio;
+      const ratioDiff =
+        Number(b.crossSectorRatio || 0) - Number(a.crossSectorRatio || 0);
+
+      if (ratioDiff !== 0) return ratioDiff;
+
+      const crossSectorDiff =
+        Number(b.crossSectorCount || 0) - Number(a.crossSectorCount || 0);
+
+      if (crossSectorDiff !== 0) return crossSectorDiff;
+
+      const connectionDiff =
+        Number(b.connectionCount || 0) - Number(a.connectionCount || 0);
+
+      if (connectionDiff !== 0) return connectionDiff;
+
+      return String(a.id || "").localeCompare(String(b.id || ""));
     });
 
-  const connectorCutoff = Math.max(
-    1,
-    Math.ceil(connectorCandidates.length * 0.3)
+  const connectorCutoff =
+    connectorCandidates.length === 0
+      ? 0
+      : Math.max(1, Math.ceil(connectorCandidates.length * 0.3));
+
+  assignFromCandidates(
+    connectorCandidates.slice(0, connectorCutoff),
+    "Connector"
   );
-  connectorCandidates
-    .slice(0, connectorCutoff)
-    .forEach((s) => assign(s.id, "Connector"));
 
-  // 3. Explorer — ≥3 sectors AND cross-sector ratio > 0.5
+  // 3. Explorer — ≥3 sectors reached AND cross-sector ratio > 0.5, max 3.
+  assignFromCandidates(stats, "Explorer", (stat) => {
+    const ratio = Number(stat.crossSectorRatio || 0);
+
+    return stat.sectorsReachedCount >= 3 && ratio > 0.5;
+  });
+
+  // 4. Catalyst — top 30% by first-hour connections, max 3.
+  //
+  // Catalyst is independent of the normal role system.
+  // It does NOT use `assigned`, and it does NOT overwrite `roleById`.
+  const catalystCandidates = [...stats].sort((a, b) => {
+    const firstHourDiff =
+      Number(b.connectionsFirstHour || 0) -
+      Number(a.connectionsFirstHour || 0);
+
+    if (firstHourDiff !== 0) return firstHourDiff;
+
+    const connectionDiff =
+      Number(b.connectionCount || 0) - Number(a.connectionCount || 0);
+
+    if (connectionDiff !== 0) return connectionDiff;
+
+    return String(a.id || "").localeCompare(String(b.id || ""));
+  });
+
+  const catalystCutoff = Math.max(1, Math.ceil(total * 0.3));
+
+  let catalystCount = 0;
+
+  for (const stat of catalystCandidates.slice(0, catalystCutoff)) {
+    if (Number(stat.connectionsFirstHour || 0) <= 0) continue;
+    if (catalystCount >= MAX_PER_COMPETITIVE_ROLE) break;
+
+    catalystIds.add(stat.id);
+    catalystCount += 1;
+  }
+
+  // 5. Builder — everyone else, uncapped.
   stats
-    .filter((s) => !assigned.has(s.id))
-    .forEach((s) => {
-      const ratio =
-        s.connectionCount === 0 ? 0 : s.crossSectorCount / s.connectionCount;
-      if (s.sectorsReachedCount >= 3 && ratio > 0.5) {
-        assign(s.id, "Explorer");
-      }
+    .filter((stat) => !assigned.has(stat.id))
+    .forEach((stat) => {
+      assign(stat.id, "Builder");
     });
 
-  // 4. Catalyst — top 30% by connection count, not yet assigned
-  const catalystCutoff = Math.max(1, Math.ceil(total * 0.3));
-  sorted
-    .slice(0, catalystCutoff)
-    .filter((s) => !assigned.has(s.id))
-    .forEach((s) => assign(s.id, "Catalyst"));
+  return stats.map((stat) => {
+    const primaryRole = roleById.get(stat.id) || "Builder";
+    const roles = catalystIds.has(stat.id)
+      ? [primaryRole, "Catalyst"]
+      : [primaryRole];
 
-  // 5. Builder — everyone else
-  stats
-    .filter((s) => !assigned.has(s.id))
-    .forEach((s) => assign(s.id, "Builder"));
+    return {
+      ...stat,
 
-  return stats.map((stat) => ({
-    ...stat,
-    role: roleById.get(stat.id) || "Builder",
-  }));
+      // Keeps existing UI code working.
+      role: primaryRole,
+
+      // New multi-role output.
+      roles,
+
+      // Easy UI flag.
+      isCatalyst: catalystIds.has(stat.id),
+    };
+  });
 }
 
 /**
  * computeRoles
- * Convenience wrapper — takes raw DB rows and returns a Map<attendeeId, role>.
- * Used by ScreenPage on reveal-button press.
+ *
+ * Takes attendee_stats rows and returns:
+ *   Map<attendeeId, role>
  */
-export function computeRoles(attendees, connections) {
-  const stats = assignRoles(computeAttendeeStats(attendees, connections));
-  return new Map(stats.map((s) => [s.id, s.role]));
+export function computeRoles(attendeeStatsRows = []) {
+  const stats = assignRoles(computeAttendeeStats(attendeeStatsRows));
+
+  return new Map(stats.map((stat) => [stat.id, stat.roles]));
+}
+
+export function computeRoleList(attendeeStatsRows = []) {
+  const stats = assignRoles(computeAttendeeStats(attendeeStatsRows));
+
+  return new Map(stats.map((stat) => [stat.id, stat.roles]));
+}
+/**
+ * computeRoleStats
+ *
+ * Convenience helper for screens that need the full stat objects
+ * with roles already attached.
+ */
+export function computeRoleStats(attendeeStatsRows = []) {
+  const x = assignRoles(computeAttendeeStats(attendeeStatsRows));
+  console.log("computeRoleStats", { x });
+  return x;
+}
+
+export function mergeStatsWithAttendees(attendeeStatsRows = [], attendees = []) {
+  const attendeeById = new Map(
+    attendees.map((attendee) => [attendee.id, attendee])
+  );
+
+  return attendeeStatsRows.map((statRow) => {
+    const attendee = attendeeById.get(statRow.user_id);
+
+    return {
+      ...statRow,
+      ...(attendee || {}),
+    };
+  });
 }

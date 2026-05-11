@@ -1,13 +1,6 @@
 import { useState } from "react";
+import { SECTOR_CONFIG } from "../../data/config";
 
-const SECTOR_CONFIG = {
-  Tech:            { color: "#378ADD", light: "#EBF4FF" },
-  Finance:         { color: "#7F77DD", light: "#EEEDFA" },
-  Health:          { color: "#1D9E75", light: "#E5F5EF" },
-  Energy:          { color: "#EF9F27", light: "#FDF4E7" },
-  "Public Sector": { color: "#D85A30", light: "#FCEEE9" },
-  Other:           { color: "#7A7A78", light: "#F2F2F1" },
-};
 
 // Pass attendeeList as a prop — fetch from Supabase in the parent
 export default function EdgeScreen({ type, profile, onReset, attendeeList = [], onActivate }) {

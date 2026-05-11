@@ -358,8 +358,8 @@ class SupabaseTestClient:
             },
         )
 
-firstNames = ["Hassan", "Sara", "Ali", "Aisha", "Omar", "Fatima", "Zain", "Maryam"]
-lastNames = ["Abbas", "Khan", "Ahmed", "Hussain", "Yousuf", "Ali", "Hameed", "Saeed"]
+firstNames = ["Hassan", "Sara", "Ali", "Aisha", "Omar", "Fatima", "Zain", "Maryam", "Zara", "James", "Emily", "Michael", "Jessica", "David", "Sophia", "Daniel", "Olivia", "Matthew", "Ava", "Joseph", "Isabella"]
+lastNames = ["Abbas", "Khan", "Ahmed", "Hussain", "Yousuf", "Ali", "Hameed", "Saeed", "Raza", "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez"]
 
 from time import sleep
 from random import choice, sample
@@ -387,8 +387,8 @@ if __name__ == "__main__":
     attendees = db.list_attendees()
     for _ in range(15):
 
-        if len(attendees) < 2:
-            break
+        # if len(attendees) < 2:
+        #     break
 
         scanner, scanned = sample(attendees, 2)
 
@@ -409,7 +409,7 @@ if __name__ == "__main__":
                 f"{scanner['name']} -> {scanned['name']} | {e}"
             )
 
-        sleep(1)
+        # sleep(1)
 
 
         # attendees.append(

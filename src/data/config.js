@@ -15,7 +15,7 @@ export const sectorOptions = [
   "Health",
   "Energy",
   "Public sector",
-  "Other",
+  "Industry",
 ];
 
 export const countryOptions = [
@@ -475,7 +475,7 @@ export const SECTOR_CONFIG = {
   health: { color: "#1D9E75", light: "#E5F5EF" },
   energy: { color: "#EF9F27", light: "#FDF4E7" },
   "public sector": { color: "#D85A30", light: "#FCEEE9" },
-  other: { color: "#7A7A78", light: "#F2F2F1" },
+  industry: { color: "#7A7A78", light: "#F2F2F1" },
 };
 
 export const TABLE_NAME = "attendees";

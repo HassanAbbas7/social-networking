@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import { buildGraphData } from "../../lib/graphHelpers";
-import { DEVELOPER_MODE } from "../../data/config";
+import { DEVELOPER_MODE, SECTOR_CONFIG } from "../../data/config";
 
 // Fallback palettes — overridden by props passed from ScreenPage
 const DEFAULT_SECTOR_COLORS = {
@@ -10,7 +10,7 @@ const DEFAULT_SECTOR_COLORS = {
   health: "#1D9E75",
   energy: "#EF9F27",
   public_sector: "#D85A30",
-  other: "#888780",
+  industry: "#888780",
 };
 
 const DEFAULT_ROLE_COLORS = {
@@ -81,7 +81,7 @@ function NetworkGraph({
     if (revealRoles && node.role) {
       return roleColors[node.role] || "#888780";
     }
-    const sectorKey = (node.sector || "other").toLowerCase().replace(/\s+/g, "_");
+    const sectorKey = (node.sector || "industry").toLowerCase().replace(/\s+/g, "_");
     return sectorColors[sectorKey] || "#888780";
   };
 
@@ -718,7 +718,7 @@ function getLabelCollisionRadius(d) {
             .attr("font-weight", 500)
             .attr("fill", (d) => {
               if (revealRoles && d.role) return roleColors[d.role] || "#888780";
-              const sectorKey = (d.sector || "other").toLowerCase().replace(/\s+/g, "_");
+              const sectorKey = (d.sector || "industry").toLowerCase().replace(/\s+/g, "_");
               return sectorColors[sectorKey] || "#888780";
             })
             .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif")
@@ -743,7 +743,7 @@ function getLabelCollisionRadius(d) {
             })
             .attr("fill", (d) => {
               if (revealRoles && d.role) return roleColors[d.role] || "#888780";
-              const sectorKey = (d.sector || "other").toLowerCase().replace(/\s+/g, "_");
+              const sectorKey = (d.sector || "industry").toLowerCase().replace(/\s+/g, "_");
               return sectorColors[sectorKey] || "#888780";
             })
             .attr("opacity", showNames ? 1 : 0);

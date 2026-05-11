@@ -1,14 +1,16 @@
+
+
 import React, { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TABLE_NAME } from "../data/config";
-import { computeAttendeeStats, computeRoles } from "../utils/roleUtils";
+import { computeRoleStats } from "../utils/roleUtils";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 );
 
-const CONNECTIONS_TABLE = "connections";
+const ATTENDEE_STATS_TABLE = "attendee_stats";
 const MAX_RANKS = 3;
 
 const DONATION_PER_CONNECTION = Number(
@@ -20,7 +22,8 @@ const ROLE_DEFINITIONS = [
     key: "anchor",
     roleName: "Anchor",
     name: "Anchor",
-    subtitle: "Most connected",
+    logic: "Top 15% by total connections",
+    description: "You grounded the ecosystem — everyone passed through you",
     color: "#EF9F27",
     scoreKey: "connectionCount",
   },
@@ -28,7 +31,8 @@ const ROLE_DEFINITIONS = [
     key: "connector",
     roleName: "Connector",
     name: "Connector",
-    subtitle: "Cross-sector bridges",
+    logic: "Top 3 by cross-sector %",
+    description: "You linked what should not yet be linked",
     color: "#1D9E75",
     scoreKey: "crossSectorCount",
   },
@@ -36,7 +40,8 @@ const ROLE_DEFINITIONS = [
     key: "explorer",
     roleName: "Explorer",
     name: "Explorer",
-    subtitle: "Sectors reached",
+    logic: "Most sectors reached out of 6",
+    description: "You went where others did not — and brought people back",
     color: "#7F77DD",
     scoreKey: "sectorsReachedCount",
   },
@@ -44,17 +49,19 @@ const ROLE_DEFINITIONS = [
     key: "catalyst",
     roleName: "Catalyst",
     name: "Catalyst",
-    subtitle: "Fastest networker",
+    logic: "Most connections in first hour",
+    description: "You accelerated what was already in motion",
     color: "#D85A30",
-    scoreKey: "connectionCount",
+    scoreKey: "connectionsFirstHour",
   },
   {
     key: "builder",
     roleName: "Builder",
     name: "Builder",
-    subtitle: "Mutual connections",
+    logic: "The bridge — consistent",
+    description: "You showed up consistently and made it real",
     color: "#378ADD",
-    scoreKey: "mutualConnectionCount",
+    scoreKey: "connectionCount",
   },
 ];
 
@@ -82,7 +89,9 @@ const RANK_THEMES = {
   },
 };
 
-function getDisplayName(attendee) {
+function getDisplayName(stat) {
+  const attendee = stat.attendee || stat.raw || {};
+
   return (
     attendee.name ||
     attendee.full_name ||
@@ -92,7 +101,9 @@ function getDisplayName(attendee) {
   );
 }
 
-function getCompany(attendee) {
+function getCompany(stat) {
+  const attendee = stat.attendee || stat.raw || {};
+
   return (
     attendee.company ||
     attendee.organization ||
@@ -103,62 +114,75 @@ function getCompany(attendee) {
   );
 }
 
-function getVisibleAttendees(attendees, connections) {
-  const connectedIds = new Set();
-
-  connections.forEach((connection) => {
-    if (connection.scanner_id) connectedIds.add(connection.scanner_id);
-    if (connection.scanned_id) connectedIds.add(connection.scanned_id);
-  });
-
-  return attendees.filter((attendee) => connectedIds.has(attendee.id));
-}
-
-function getVisibleConnections(visibleAttendees, connections) {
-  const visibleIds = new Set(visibleAttendees.map((attendee) => attendee.id));
-
-  return connections.filter(
-    (connection) =>
-      visibleIds.has(connection.scanner_id) &&
-      visibleIds.has(connection.scanned_id)
+function mergeStatsWithAttendees(attendeeStatsRows = [], attendees = []) {
+  const attendeeById = new Map(
+    attendees.map((attendee) => [attendee.id, attendee])
   );
+
+  return attendeeStatsRows.map((statRow) => {
+    const attendee = attendeeById.get(statRow.user_id);
+
+    return {
+      ...statRow,
+
+      // These display fields are merged in so roleUtils can expose them
+      // through stat.attendee / stat.raw.
+      ...(attendee || {}),
+    };
+  });
 }
 
-function makeLeaderboardRoles(attendees, connections) {
-  const visibleAttendees = getVisibleAttendees(attendees, connections);
-  const visibleConnections = getVisibleConnections(visibleAttendees, connections);
+function hasLeaderboardRole(stat, roleName) {
+  /**
+   * Catalyst is the only independent role.
+   * A person can be Catalyst and still keep their primary role.
+   */
+  if (roleName === "Catalyst") {
+    return Boolean(stat.isCatalyst) || stat.roles?.includes("Catalyst");
+  }
 
-  const roleById = computeRoles(visibleAttendees, visibleConnections);
+  /**
+   * For non-Catalyst roles, support both the old single-role shape
+   * and the newer roles array shape.
+   */
+  return stat.role === roleName || stat.roles?.includes(roleName);
+}
 
-  const stats = computeAttendeeStats(visibleAttendees, visibleConnections).map(
-    (stat) => ({
-      ...stat,
-      role: roleById.get(stat.id) || "Builder",
-    })
+function getLeaderboardScore(stat, roleDef) {
+  if (roleDef.key === "connector") {
+    return Number(stat.crossSectorRatio || 0) * 100;
+  }
+
+  return Number(stat[roleDef.scoreKey] || 0);
+}
+
+function makeLeaderboardRoles(attendeeStatsRows) {
+  const stats = computeRoleStats(attendeeStatsRows).filter(
+    (stat) => Number(stat.connectionCount || 0) > 0
   );
 
   return ROLE_DEFINITIONS.map((roleDef) => {
     const entries = stats
-      .filter(
-        (stat) =>
-          stat.role === roleDef.roleName &&
-          Number(stat.connectionCount || 0) > 0
-      )
+      .filter((stat) => hasLeaderboardRole(stat, roleDef.roleName))
       .sort((a, b) => {
-        const diff =
-          Number(b[roleDef.scoreKey] || 0) -
-          Number(a[roleDef.scoreKey] || 0);
+        const scoreDiff =
+          getLeaderboardScore(b, roleDef) - getLeaderboardScore(a, roleDef);
 
-        if (diff !== 0) return diff;
+        if (scoreDiff !== 0) return scoreDiff;
 
-        return Number(b.connectionCount || 0) - Number(a.connectionCount || 0);
+        const connectionDiff =
+          Number(b.connectionCount || 0) - Number(a.connectionCount || 0);
+
+        if (connectionDiff !== 0) return connectionDiff;
+
+        return String(a.id || "").localeCompare(String(b.id || ""));
       })
       .slice(0, MAX_RANKS)
       .map((stat) => ({
         id: stat.id,
-        name: getDisplayName(stat.attendee),
-        company: getCompany(stat.attendee),
-        score: stat[roleDef.scoreKey],
+        name: getDisplayName(stat),
+        company: getCompany(stat),
+        score: getLeaderboardScore(stat, roleDef),
       }));
 
     return {
@@ -168,17 +192,12 @@ function makeLeaderboardRoles(attendees, connections) {
   });
 }
 
-function formatScore(value) {
-  return Math.round(Number(value || 0));
+function formatScore(value, roleKey) {
+  const roundedValue = Math.round(Number(value || 0));
+
+  return roleKey === "connector" ? `${roundedValue}%` : roundedValue;
 }
 
-function formatEuro(value) {
-  return new Intl.NumberFormat("nl-NL", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(value || 0);
-}
 
 function PulseDot() {
   return (
@@ -205,125 +224,78 @@ function PulseDot() {
 }
 
 export default function Leaderboard() {
+  const [attendeeStats, setAttendeeStats] = useState([]);
   const [attendees, setAttendees] = useState([]);
-  const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
   async function loadLeaderboardData(showLoading = false) {
-  if (showLoading) setLoading(true);
+    if (showLoading) setLoading(true);
 
-  setErrorMessage("");
+    setErrorMessage("");
 
-  const [
-    { data: attendeesData, error: attendeesError },
-    { data: connectionsData, error: connectionsError },
-  ] = await Promise.all([
-    supabase.from(TABLE_NAME).select("*"),
-    supabase
-      .from(CONNECTIONS_TABLE)
-      .select("*")
-      .order("created_at", { ascending: true }),
-  ]);
+    const [
+      { data: attendeeStatsData, error: attendeeStatsError },
+      { data: attendeesData, error: attendeesError },
+    ] = await Promise.all([
+      supabase
+        .from(ATTENDEE_STATS_TABLE)
+        .select("*")
+        .order("total_connections", { ascending: false }),
 
-  if (attendeesError || connectionsError) {
-    console.error(
-      "Error loading leaderboard data:",
-      attendeesError || connectionsError
-    );
-    setErrorMessage("Could not load the live leaderboard.");
+      supabase.from(TABLE_NAME).select("*"),
+    ]);
+
+    if (attendeeStatsError || attendeesError) {
+      console.error(
+        "Error loading leaderboard data:",
+        attendeeStatsError || attendeesError
+      );
+      setErrorMessage("Could not load the live leaderboard.");
+      setLoading(false);
+      return;
+    }
+
+    setAttendeeStats(attendeeStatsData || []);
+    setAttendees(attendeesData || []);
     setLoading(false);
-    return;
   }
 
-  setAttendees(attendeesData || []);
-  setConnections(connectionsData || []);
-  setLoading(false);
-}
-
   useEffect(() => {
-  loadLeaderboardData(true);
+    loadLeaderboardData(true);
 
-  const intervalId = setInterval(() => {
-    loadLeaderboardData(false);
-  }, 3000);
+    const intervalId = setInterval(() => {
+      loadLeaderboardData(false);
+    }, 3000);
 
-  return () => {
-    clearInterval(intervalId);
-  };
-}, []);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     const channel = supabase
       .channel("leaderboard-live-data")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: CONNECTIONS_TABLE },
-        (payload) => {
-          const newConnection = payload.new;
-
-          setConnections((current) => {
-            if (current.some((connection) => connection.id === newConnection.id)) {
-              return current;
-            }
-
-            return [...current, newConnection];
-          });
+        {
+          event: "*",
+          schema: "public",
+          table: ATTENDEE_STATS_TABLE,
+        },
+        () => {
+          loadLeaderboardData(false);
         }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: CONNECTIONS_TABLE },
-        (payload) => {
-          setConnections((current) =>
-            current.map((connection) =>
-              connection.id === payload.new.id ? payload.new : connection
-            )
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: CONNECTIONS_TABLE },
-        (payload) => {
-          setConnections((current) =>
-            current.filter((connection) => connection.id !== payload.old.id)
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: TABLE_NAME },
-        (payload) => {
-          const newAttendee = payload.new;
-
-          setAttendees((current) => {
-            if (current.some((attendee) => attendee.id === newAttendee.id)) {
-              return current;
-            }
-
-            return [...current, newAttendee];
-          });
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: TABLE_NAME },
-        (payload) => {
-          setAttendees((current) =>
-            current.map((attendee) =>
-              attendee.id === payload.new.id ? payload.new : attendee
-            )
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: TABLE_NAME },
-        (payload) => {
-          setAttendees((current) =>
-            current.filter((attendee) => attendee.id !== payload.old.id)
-          );
+        {
+          event: "*",
+          schema: "public",
+          table: TABLE_NAME,
+        },
+        () => {
+          loadLeaderboardData(false);
         }
       )
       .subscribe();
@@ -333,44 +305,47 @@ export default function Leaderboard() {
     };
   }, []);
 
-  const visibleAttendees = useMemo(
-    () => getVisibleAttendees(attendees, connections),
-    [attendees, connections]
+  const mergedAttendeeStats = useMemo(
+    () => mergeStatsWithAttendees(attendeeStats, attendees),
+    [attendeeStats, attendees]
   );
 
-  const visibleConnections = useMemo(
-    () => getVisibleConnections(visibleAttendees, connections),
-    [visibleAttendees, connections]
+  const roleStats = useMemo(
+    () => computeRoleStats(mergedAttendeeStats),
+    [mergedAttendeeStats]
   );
-
-  const attendeeById = useMemo(
-    () => new Map(visibleAttendees.map((attendee) => [attendee.id, attendee])),
-    [visibleAttendees]
-  );
-
-  const totalConnections = visibleConnections.length;
-
-  const crossSector = useMemo(() => {
-    return visibleConnections.filter((connection) => {
-      const scanner = attendeeById.get(connection.scanner_id);
-      const scanned = attendeeById.get(connection.scanned_id);
-
-      return (
-        scanner &&
-        scanned &&
-        scanner.sector &&
-        scanned.sector &&
-        scanner.sector !== scanned.sector
-      );
-    }).length;
-  }, [visibleConnections, attendeeById]);
 
   const roles = useMemo(
-    () => makeLeaderboardRoles(attendees, connections),
-    [attendees, connections]
+    () => makeLeaderboardRoles(mergedAttendeeStats),
+    [mergedAttendeeStats]
   );
 
-  const anbiPool = formatEuro(totalConnections * DONATION_PER_CONNECTION);
+  /**
+   * attendee_stats is per attendee.
+   * Because your SQL view is based on all_connections, each real connection
+   * appears once from each attendee's perspective.
+   *
+   * Therefore:
+   *   sum(total_connections) / 2 = real total connections
+   *   sum(cross_sector_count) / 2 = real cross-sector connections
+   */
+  const totalConnections = useMemo(() => {
+    const totalUserConnections = roleStats.reduce(
+      (sum, stat) => sum + Number(stat.connectionCount || 0),
+      0
+    );
+
+    return Math.round(totalUserConnections / 2);
+  }, [roleStats]);
+
+  const crossSector = useMemo(() => {
+    const totalUserCrossSectorConnections = roleStats.reduce(
+      (sum, stat) => sum + Number(stat.crossSectorCount || 0),
+      0
+    );
+
+    return Math.round(totalUserCrossSectorConnections / 2);
+  }, [roleStats]);
 
   if (loading) {
     return (
@@ -544,9 +519,9 @@ export default function Leaderboard() {
               flexDirection: "column",
             }}
           >
-            <div style={{ height: 80, marginBottom: 0 }} />
+            <div style={{ height: 160, marginBottom: 0 }} />
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 16 }}>
               {[0, 1, 2].map((rankIndex) => {
                 const theme = RANK_THEMES[rankIndex];
 
@@ -558,11 +533,29 @@ export default function Leaderboard() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      animation: `fadeSlideUp 0.6s ${
-                        0.3 + rankIndex * 0.1
-                      }s both`,
+                      position: "relative",
+                      animation: `fadeSlideUp 0.6s ${0.3 + rankIndex * 0.1
+                        }s both`,
                     }}
                   >
+                    {/* Horizontal connection row */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: "50%",
+                        width: "100vw",
+                        height: 90,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: `linear-gradient(90deg, ${theme.rankColor}15 0%, ${theme.rankColor}03 60%, transparent 100%)`,
+                        borderTop: `1px solid ${theme.rankColor}30`,
+                        borderBottom: `1px solid ${theme.rankColor}30`,
+                        zIndex: 0,
+                        pointerEvents: "none",
+                      }}
+                    />
+
+                    {/* Rank badge */}
                     <div
                       style={{
                         width: 64,
@@ -577,6 +570,8 @@ export default function Leaderboard() {
                         color: theme.text,
                         boxShadow: `0 0 20px ${theme.glow}, inset 0 -2px 6px rgba(0,0,0,0.2)`,
                         border: "2px solid rgba(255,255,255,0.4)",
+                        position: "relative",
+                        zIndex: 1,
                       }}
                     >
                       {theme.label}
@@ -593,6 +588,7 @@ export default function Leaderboard() {
               style={{
                 flex: 1,
                 minWidth: 0,
+                position: "relative",
                 background: "rgba(25, 25, 25, 0.4)",
                 border: "1px solid rgba(255, 255, 255, 0.05)",
                 borderRadius: 24,
@@ -604,23 +600,24 @@ export default function Leaderboard() {
             >
               <div
                 style={{
-                  padding: "20px 16px",
+                  padding: "24px 16px 16px",
                   borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
                   background: `linear-gradient(180deg, ${role.color}15 0%, transparent 100%)`,
                   textAlign: "center",
-                  height: 80,
+                  height: 160,
                   display: "flex",
                   flexDirection: "column",
-                  justifyContent: "center",
+                  alignItems: "center",
                 }}
               >
                 <div
                   style={{
-                    fontSize: 24,
+                    fontSize: 26,
                     fontWeight: 700,
                     color: role.color,
                     fontFamily: "'DM Serif Display', serif",
                     letterSpacing: "-0.5px",
+                    marginBottom: 6,
                   }}
                 >
                   {role.name}
@@ -628,15 +625,39 @@ export default function Leaderboard() {
 
                 <div
                   style={{
-                    fontSize: 11,
-                    color: "#C0BCB5",
-                    fontWeight: 700,
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    marginTop: 2,
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: 13,
+                    color: "#EDE9E0",
+                    fontStyle: "italic",
+                    fontWeight: 400,
+                    lineHeight: 1.3,
+                    marginBottom: 12,
+                    padding: "0 4px",
                   }}
                 >
-                  {role.subtitle}
+                  "{role.description}"
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 9,
+                    color: "#C0BCB5",
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: "90%",
+                  }}
+                >
+                  {role.logic}
                 </div>
               </div>
 
@@ -683,9 +704,11 @@ export default function Leaderboard() {
                             color: "rgba(255,255,255,0.2)",
                             letterSpacing: "0.2em",
                             textTransform: "uppercase",
+                            textAlign: "center",
                           }}
                         >
-                          Awaiting Data
+                          Not enough connections, <br />
+                          keep connecting
                         </span>
                       </div>
                     );
@@ -699,7 +722,14 @@ export default function Leaderboard() {
                         borderLeft: `4px solid ${theme.rankColor}`,
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: 0, paddingRight: 10, textAlign: "left" }}>
+                      <div
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          paddingRight: 10,
+                          textAlign: "left",
+                        }}
+                      >
                         <div
                           style={{
                             fontSize: 18,
@@ -738,7 +768,9 @@ export default function Leaderboard() {
                             textShadow: `0 0 15px ${role.color}40`,
                           }}
                         >
-                          {formatScore(entry.score)}
+                          {role.key === "explorer"
+                            ? `${formatScore(entry.score, role.key)}/6`
+                            : formatScore(entry.score, role.key)}
                         </div>
                       </div>
                     </div>
@@ -862,6 +894,7 @@ export default function Leaderboard() {
             >
               500
             </div>
+
           </div>
 
           <div

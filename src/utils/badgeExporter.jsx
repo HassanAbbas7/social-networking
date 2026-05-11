@@ -23,7 +23,7 @@ export async function createBadgePng(profile) {
     ctx.imageSmoothingQuality = "high";
 
     const sector = normalizeSector(profile.sector);
-    const cfg = SECTOR_CONFIG[sector] || SECTOR_CONFIG.Other;
+    const cfg = SECTOR_CONFIG[sector] || SECTOR_CONFIG.industry;
 
     const attendee = normalizeProfile(profile);
 
@@ -31,11 +31,11 @@ export async function createBadgePng(profile) {
 
     function normalizeSector(value) {
       value = value.toLowerCase().trim(); 
-      const raw = String(value || "other").trim();
+      const raw = String(value || "industry").trim();
 
       if (raw.toLowerCase() === "public sector") return "Public Sector";
 
-      return SECTOR_CONFIG[raw] ? raw : "Other";
+      return SECTOR_CONFIG[raw] ? raw : "Industry";
     }
 
     function normalizeProfile(value) {

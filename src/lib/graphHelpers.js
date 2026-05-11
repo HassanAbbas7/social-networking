@@ -6,7 +6,7 @@ export const sectorColors = {
   Energy: "#EF9F27",
   "Public sector": "#D85A30",
   Health: "#fb7185",
-  Other: "#7A7A78",
+  Industry: "#7A7A78",
 };
 
 export const roleColors = {

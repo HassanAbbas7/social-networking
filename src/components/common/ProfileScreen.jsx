@@ -2,16 +2,6 @@ import React from "react";
 import { countryMap, SECTOR_CONFIG } from "../../data/config";
 
 
-// // ─── Sector config ────────────────────────────────────────────────────────────
-// const SECTOR_CONFIG = {
-//   Tech:            { color: "#378ADD", light: "#EBF4FF" },
-//   Finance:         { color: "#7F77DD", light: "#EEEDFA" },
-//   Health:          { color: "#1D9E75", light: "#E5F5EF" },
-//   Energy:          { color: "#EF9F27", light: "#FDF4E7" },
-//   "Public Sector": { color: "#D85A30", light: "#FCEEE9" },
-//   Other:           { color: "#7A7A78", light: "#F2F2F1" },
-// };
-
 // ─── SVG Flags ────────────────────────────────────────────────────────────────
 function Flag({ country, size = 24 }) {
   return (
@@ -92,7 +82,7 @@ function Spinner() {
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export default function ProfileScreen({ profile, onConnect, connecting }) {
-  const cfg = SECTOR_CONFIG[profile.sector] || SECTOR_CONFIG.Other;
+  const cfg = SECTOR_CONFIG[profile.sector] || SECTOR_CONFIG.industry;
 
   const firstName = profile.name?.split(" ")[0] || "";
   const lastName = profile.name?.split(" ").slice(1).join(" ") || "";

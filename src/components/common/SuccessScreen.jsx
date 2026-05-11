@@ -1,15 +1,6 @@
 import { useState, useEffect } from "react";
 import {SECTOR_CONFIG} from "../../data/config";
 
-// const SECTOR_CONFIG = {
-//   Tech: { color: "#378ADD", light: "#EBF4FF" },
-//   Finance: { color: "#7F77DD", light: "#EEEDFA" },
-//   Health: { color: "#1D9E75", light: "#E5F5EF" },
-//   Energy: { color: "#EF9F27", light: "#FDF4E7" },
-//   "Public Sector": { color: "#D85A30", light: "#FCEEE9" },
-//   Other: { color: "#7A7A78", light: "#F2F2F1" },
-// };
-
 function openLinkedIn(input) {
     const isAndroid = /android/i.test(navigator.userAgent);
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -66,7 +57,7 @@ function openLinkedIn(input) {
 const DURATION = 4;
 
 export default function SuccessScreen({ profile, connectionCount, onReset }) {
-  const cfg = SECTOR_CONFIG[profile.sector] || SECTOR_CONFIG.Other;
+  const cfg = SECTOR_CONFIG[profile.sector] || SECTOR_CONFIG.industry;
 
   const [startTime] = useState(Date.now());
   const [countdown, setCountdown] = useState(DURATION);
