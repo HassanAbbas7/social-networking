@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { expectedColumns, TABLE_NAME } from "../data/config";
-import QRCode from "qrcode";
 import { createClient } from "@supabase/supabase-js";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
@@ -20,10 +19,13 @@ export default function RecordsPage() {
   const [bulkAction, setBulkAction] = useState("");
   const [error, setError] = useState("");
 
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [savingId, setSavingId] = useState(null);
+
   useEffect(() => {
     fetchRecords();
   }, []);
-
 
   function safeFileName(name) {
     return String(name || "record")
@@ -31,6 +33,25 @@ export default function RecordsPage() {
       .replace(/[^a-z0-9]/gi, "-")
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "");
+  }
+
+  async function fetchRecords() {
+    setLoading(true);
+    setError("");
+
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select(`id, slug, ${expectedColumns.join(", ")}`)
+      .order("name", { ascending: true });
+
+    if (error) {
+      setError(error.message);
+      setRecords([]);
+    } else {
+      setRecords(data || []);
+    }
+
+    setLoading(false);
   }
 
   async function handleGenerateQR(record) {
@@ -81,23 +102,65 @@ export default function RecordsPage() {
     }
   }
 
-  async function fetchRecords() {
-    setLoading(true);
-    setError("");
+  function startEditing(record) {
+    setEditingId(record.id);
+    setEditForm({
+      name: record.name || "",
+      company: record.company || "",
+      title: record.title || "",
+      sector: record.sector || "",
+      country: record.country || "",
+      linkedin_url: record.linkedin_url || "",
+    });
+  }
 
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select(`id, slug, ${expectedColumns.join(", ")}`)
-      .order("name", { ascending: true });
+  function cancelEditing() {
+    setEditingId(null);
+    setEditForm({});
+  }
 
-    if (error) {
-      setError(error.message);
-      setRecords([]);
-    } else {
-      setRecords(data || []);
+  function updateEditField(field, value) {
+    setEditForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function handleSave(recordId) {
+    try {
+      setSavingId(recordId);
+      setError("");
+
+      const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .update({
+          name: editForm.name,
+          company: editForm.company,
+          title: editForm.title,
+          sector: editForm.sector,
+          country: editForm.country,
+          linkedin_url: editForm.linkedin_url,
+        })
+        .eq("id", recordId)
+        .select(`id, slug, ${expectedColumns.join(", ")}`)
+        .single();
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      setRecords((currentRecords) =>
+        currentRecords.map((record) =>
+          record.id === recordId ? data : record
+        )
+      );
+
+      setEditingId(null);
+      setEditForm({});
+    } finally {
+      setSavingId(null);
     }
-
-    setLoading(false);
   }
 
   async function handleDelete(id) {
@@ -163,179 +226,272 @@ export default function RecordsPage() {
   }, [records, search]);
 
   return (
-  <main className="min-h-screen bg-gray-50">
-    <div className="mx-auto max-w-7xl pt-2">
-      
-      {/* Header Row */}
-      <div className="mb-2 flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
-        
-        {/* Left: Title */}
-        <div>
-          {/* TThere should be a logo that matches the heading size */}
-          
-          <h1 className="m-0 leading-none text-2xl font-semibold text-gray-900" style={{ fontSize: "42px" }}>
-            Records
-          </h1>
-          <p className="m-0 text-sm text-gray-500 leading-tight">
-            Showing {filteredRecords.length} of {records.length} records
-          </p>
-        </div>
+    <main className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl pt-2">
+        <div className="mb-2 flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1
+              className="m-0 leading-none text-2xl font-semibold text-gray-900"
+              style={{ fontSize: "42px" }}
+            >
+              Records
+            </h1>
 
-        {/* Right: Controls */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search records..."
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-gray-500 sm:w-72"
-          />
+            <p className="m-0 text-sm text-gray-500 leading-tight">
+              Showing {filteredRecords.length} of {records.length} records
+            </p>
+          </div>
 
-          <button
-            type="button"
-            onClick={handleDownloadAllQR}
-            disabled={!records.length || bulkAction === "download"}
-            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {bulkAction === "download"
-              ? "Preparing..."
-              : "Download QR for All"}
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search records..."
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm outline-none focus:border-gray-500 sm:w-72"
+            />
 
-          <button
-            type="button"
-            onClick={handleDeleteAll}
-            disabled={!records.length || bulkAction === "delete"}
-            className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {bulkAction === "delete" ? "Deleting..." : "Delete All"}
-          </button>
-        </div>
-      </div>
+            <button
+              type="button"
+              onClick={handleDownloadAllQR}
+              disabled={!records.length || bulkAction === "download"}
+              className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {bulkAction === "download"
+                ? "Preparing..."
+                : "Download QR for All"}
+            </button>
 
-      {/* Error */}
-      {error && (
-        <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      {/* Content */}
-      {loading ? (
-        <div className="rounded-2xl bg-white p-6 text-center text-gray-500 shadow-sm">
-          Loading records...
-        </div>
-      ) : filteredRecords.length === 0 ? (
-        <div className="rounded-2xl bg-white p-6 text-center text-gray-500 shadow-sm">
-          No records found.
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Name
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Company
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Title
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Sector
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Country
-                  </th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    LinkedIn
-                  </th>
-                  <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray-100">
-                {filteredRecords.map((record, index) => (
-                  <tr
-                    key={record.id}
-                    className="hover:bg-gray-50"
-                    style={{
-                      backgroundColor:
-                        index % 2 === 0 ? "lightgray" : "white",
-                    }}
-                  >
-                    <td className="px-4 py-2 text-sm font-medium text-gray-900">
-                      {record.name || "—"}
-                    </td>
-
-                    <td className="px-4 py-2 text-sm text-gray-700">
-                      {record.company || "—"}
-                    </td>
-
-                    <td className="px-4 py-2 text-sm text-gray-700">
-                      {record.title || "—"}
-                    </td>
-
-                    <td className="px-4 py-2 text-sm text-gray-700">
-                      {record.sector || "—"}
-                    </td>
-
-                    <td className="px-4 py-2 text-sm text-gray-700">
-                      {record.country || "—"}
-                    </td>
-
-                    <td className="px-4 py-2 text-sm">
-                      {record.linkedin_url ? (
-                        <a
-                          href={record.linkedin_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          View
-                        </a>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-
-                    <td className="px-4 py-2 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleGenerateQR(record)}
-                          className="rounded-lg bg-gray-800 px-3 py-1 text-sm font-medium text-white hover:bg-gray-900"
-                        >
-                          QR
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(record.id)}
-                          disabled={deletingId === record.id}
-                          className="rounded-lg bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {deletingId === record.id
-                            ? "Deleting..."
-                            : "Delete"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-
-            </table>
+            <button
+              type="button"
+              onClick={handleDeleteAll}
+              disabled={!records.length || bulkAction === "delete"}
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {bulkAction === "delete" ? "Deleting..." : "Delete All"}
+            </button>
           </div>
         </div>
-      )}
-    </div>
-  </main>
-);
+
+        {error && (
+          <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="rounded-2xl bg-white p-6 text-center text-gray-500 shadow-sm">
+            Loading records...
+          </div>
+        ) : filteredRecords.length === 0 ? (
+          <div className="rounded-2xl bg-white p-6 text-center text-gray-500 shadow-sm">
+            No records found.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Name
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Company
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Title
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Sector
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Country
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      LinkedIn
+                    </th>
+                    <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+                  {filteredRecords.map((record, index) => {
+                    const isEditing = editingId === record.id;
+
+                    return (
+                      <tr
+                        key={record.id}
+                        className="hover:bg-gray-50"
+                        style={{
+                          backgroundColor:
+                            index % 2 === 0 ? "lightgray" : "white",
+                        }}
+                      >
+                        <td className="px-4 py-2 text-sm font-medium text-gray-900">
+                          {isEditing ? (
+                            <input
+                              value={editForm.name}
+                              onChange={(event) =>
+                                updateEditField("name", event.target.value)
+                              }
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-gray-500"
+                            />
+                          ) : (
+                            record.name || "—"
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2 text-sm text-gray-700">
+                          {isEditing ? (
+                            <input
+                              value={editForm.company}
+                              onChange={(event) =>
+                                updateEditField("company", event.target.value)
+                              }
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-gray-500"
+                            />
+                          ) : (
+                            record.company || "—"
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2 text-sm text-gray-700">
+                          {isEditing ? (
+                            <input
+                              value={editForm.title}
+                              onChange={(event) =>
+                                updateEditField("title", event.target.value)
+                              }
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-gray-500"
+                            />
+                          ) : (
+                            record.title || "—"
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2 text-sm text-gray-700">
+                          {isEditing ? (
+                            <input
+                              value={editForm.sector}
+                              onChange={(event) =>
+                                updateEditField("sector", event.target.value)
+                              }
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-gray-500"
+                            />
+                          ) : (
+                            record.sector || "—"
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2 text-sm text-gray-700">
+                          {isEditing ? (
+                            <input
+                              value={editForm.country}
+                              onChange={(event) =>
+                                updateEditField("country", event.target.value)
+                              }
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-gray-500"
+                            />
+                          ) : (
+                            record.country || "—"
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2 text-sm">
+                          {isEditing ? (
+                            <input
+                              value={editForm.linkedin_url}
+                              onChange={(event) =>
+                                updateEditField(
+                                  "linkedin_url",
+                                  event.target.value
+                                )
+                              }
+                              placeholder="https://linkedin.com/in/..."
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-gray-500"
+                            />
+                          ) : record.linkedin_url ? (
+                            <a
+                              href={record.linkedin_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              View
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2 text-right">
+                          <div className="flex justify-end gap-2">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSave(record.id)}
+                                  disabled={savingId === record.id}
+                                  className="rounded-lg bg-green-600 px-3 py-1 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {savingId === record.id
+                                    ? "Saving..."
+                                    : "Save"}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={cancelEditing}
+                                  disabled={savingId === record.id}
+                                  className="rounded-lg bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => startEditing(record)}
+                                  className="rounded-lg bg-blue-600 px-3 py-1 text-sm font-medium text-white hover:bg-blue-700"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleGenerateQR(record)}
+                                  className="rounded-lg bg-gray-800 px-3 py-1 text-sm font-medium text-white hover:bg-gray-900"
+                                >
+                                  QR
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(record.id)}
+                                  disabled={deletingId === record.id}
+                                  className="rounded-lg bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {deletingId === record.id
+                                    ? "Deleting..."
+                                    : "Delete"}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+  );
 }

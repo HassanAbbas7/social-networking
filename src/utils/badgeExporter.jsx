@@ -30,7 +30,8 @@ export async function createBadgePng(profile) {
     await loadFonts();
 
     function normalizeSector(value) {
-      const raw = String(value || "Other").trim();
+      value = value.toLowerCase().trim(); 
+      const raw = String(value || "other").trim();
 
       if (raw.toLowerCase() === "public sector") return "Public Sector";
 

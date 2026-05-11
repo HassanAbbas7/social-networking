@@ -1,6 +1,12 @@
 import { useState } from "react";
 import Papa from "papaparse";
-import { expectedColumns, TABLE_NAME, QR_BASE_URL, DEVELOPER_MODE } from "../data/config";
+import {
+  expectedColumns,
+  TABLE_NAME,
+  QR_BASE_URL,
+  DEVELOPER_MODE,
+  countryOptions,
+} from "../data/config";
 import { createClient } from "@supabase/supabase-js";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -12,9 +18,43 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 );
 
+const countryLookup = new Map(
+  countryOptions.flatMap(({ code, name }) => {
+    const normalizedCode = code.toUpperCase();
+
+    return [
+      [code.toLowerCase(), normalizedCode],
+      [normalizedCode.toLowerCase(), normalizedCode],
+      [name.toLowerCase(), normalizedCode],
+    ];
+  })
+);
+
+function normalizeCountry(value) {
+  const country = String(value || "").trim();
+  if (!country) return null;
+
+  return countryLookup.get(country.toLowerCase()) || country;
+}
 
 
 
+function downloadSampleCsv() {
+  const headers = [
+    "name",
+    "company",
+    "title",
+    "sector",
+    "country",
+    "linkedin_url",
+    "photo_url",
+  ];
+
+  const csvContent = `${headers.join(",")}\n`;
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+  saveAs(blob, "sample-upload.csv");
+}
 
 export default function CsvUploader() {
   const [status, setStatus] = useState("");
@@ -57,7 +97,11 @@ export default function CsvUploader() {
             const cleaned = {};
 
             expectedColumns.forEach((col) => {
-              cleaned[col] = row[col] === "" ? null : row[col];
+              
+              var value = row[col] === "" ? null : row[col];
+
+              value = String(value || "").trim();
+              cleaned[col] = col === "country" ? normalizeCountry(value) : col === "sector" ? value.toLowerCase() : value;
             });
 
             return cleaned;
@@ -99,7 +143,7 @@ export default function CsvUploader() {
       .replace(/^-|-$/g, "");
   }
 
-  
+
 
 
   async function downloadZip() {
@@ -161,6 +205,14 @@ export default function CsvUploader() {
               </p>
             </div>
 
+            <button
+              type="button"
+              onClick={downloadSampleCsv}
+              className="mt-4 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              Download sample CSV
+            </button>
+
             <label className="mt-6 flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center transition hover:border-gray-400 hover:bg-gray-100">
               <span className="text-sm font-medium text-gray-700">
                 Click to upload CSV
@@ -183,14 +235,14 @@ export default function CsvUploader() {
                 style={{
                   backgroundColor:
                     status.toLowerCase().includes("failed") ||
-                    status.toLowerCase().includes("missing") ||
-                    status.toLowerCase().includes("empty")
+                      status.toLowerCase().includes("missing") ||
+                      status.toLowerCase().includes("empty")
                       ? "#FDE2E1"
                       : "#E6F4EA",
                   color:
                     status.toLowerCase().includes("failed") ||
-                    status.toLowerCase().includes("missing") ||
-                    status.toLowerCase().includes("empty")
+                      status.toLowerCase().includes("missing") ||
+                      status.toLowerCase().includes("empty")
                       ? "#D93025"
                       : "#137333",
                 }}
