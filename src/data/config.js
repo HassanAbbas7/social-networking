@@ -469,6 +469,8 @@ export const DEVELOPER_MODE = false;
 
 export const QR_BASE_URL = "https://buildingecosystems.netlify.app/connect/"
 
+export const TABLE_NAME = "attendees";
+
 export const SECTOR_CONFIG = {
   tech: { color: "#378ADD", light: "#EBF4FF" },
   finance: { color: "#7F77DD", light: "#EEEDFA" },
@@ -477,7 +479,5 @@ export const SECTOR_CONFIG = {
   "public": { color: "#D85A30", light: "#FCEEE9" },
   industry: { color: "#7A7A78", light: "#F2F2F1" },
 };
-
-export const TABLE_NAME = "attendees";
 
 export const LOGO_URL = "/logo.png";

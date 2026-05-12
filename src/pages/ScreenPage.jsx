@@ -38,7 +38,7 @@ function ScreenPage() {
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [isGraphFullscreen, setIsGraphFullscreen] = useState(false);
 
-  // null = not yet computed; set on reveal-button press
+  
   const [computedRoleById, setComputedRoleById] = useState(null);
 
   useEffect(() => {

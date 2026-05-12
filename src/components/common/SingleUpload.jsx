@@ -57,13 +57,6 @@ export default function SingleUpload({ safeFileName }) {
       return;
     }
 
-    // check if linkedin url is valid or not (e.g https://pk.linkedin.com/in/raza-zaidi-76836116a)
-    if (formData.linkedin_url) {
-      if (formData.linkedin_url.includes("linkedin.com") === false) {
-        setStatus("Upload Failed: Invalid LinkedIn URL");
-        return;
-      }
-    }
 
     try {
       setIsUploading(true);
