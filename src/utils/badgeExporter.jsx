@@ -33,7 +33,7 @@ export async function createBadgePng(profile) {
       value = value.toLowerCase().trim(); 
       const raw = String(value || "industry").trim();
 
-      if (raw.toLowerCase() === "public sector") return "Public Sector";
+      if (raw.toLowerCase() === "public") return "Public";
 
       return SECTOR_CONFIG[raw] ? raw : "Industry";
     }

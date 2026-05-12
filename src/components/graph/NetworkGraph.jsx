@@ -9,7 +9,7 @@ const DEFAULT_SECTOR_COLORS = {
   finance: "#7F77DD",
   health: "#1D9E75",
   energy: "#EF9F27",
-  public_sector: "#D85A30",
+  public: "#D85A30",
   industry: "#888780",
 };
 

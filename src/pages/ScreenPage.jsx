@@ -16,7 +16,7 @@ const SECTOR_COLORS = {
   finance: "#7F77DD",
   health: "#1D9E75",
   energy: "#EF9F27",
-  public_sector: "#D85A30",
+  public: "#D85A30",
   industry: "#888780",
 };
 
@@ -344,7 +344,7 @@ function ScreenPage() {
                 <LegendDot color={SECTOR_COLORS.finance} label="Finance" />
                 <LegendDot color={SECTOR_COLORS.health} label="Health" />
                 <LegendDot color={SECTOR_COLORS.energy} label="Energy" />
-                <LegendDot color={SECTOR_COLORS.public_sector} label="Public sector" />
+                <LegendDot color={SECTOR_COLORS.public} label="Public" />
                 <LegendDot color={SECTOR_COLORS.industry} label="Industry" />
               </div>
             )}

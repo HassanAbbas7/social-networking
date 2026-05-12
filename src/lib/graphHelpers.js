@@ -4,7 +4,7 @@ export const sectorColors = {
   Tech: "#38bdf8",
   Finance: "#a78bfa",
   Energy: "#EF9F27",
-  "Public sector": "#D85A30",
+  Public: "#D85A30",
   Health: "#fb7185",
   Industry: "#7A7A78",
 };

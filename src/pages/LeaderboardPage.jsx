@@ -892,7 +892,7 @@ export default function Leaderboard() {
                 textShadow: "0 4px 20px rgba(29, 158, 117, 0.3)",
               }}
             >
-              {totalConnections}/500
+              {totalConnections}/240
             </div>
 
           </div>

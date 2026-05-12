@@ -14,7 +14,7 @@ export const sectorOptions = [
   "Finance",
   "Health",
   "Energy",
-  "Public sector",
+  "Public",
   "Industry",
 ];
 
