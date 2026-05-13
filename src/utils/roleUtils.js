@@ -79,18 +79,19 @@ export function computeAttendeeStats(attendeeStatsRows = []) {
  *
  * Priority order, first match wins unless that role is already full:
  *   1. Anchor    — top 15% by total connection count, max 3
- *   2. Connector — top 30% of remaining candidates with ≥3 connections,
+ *   2. Connector — top 30% of candidates with ≥3 connections,
  *                  sorted by cross-sector ratio, descending, max 3
  *   3. Explorer  — ≥3 sectors reached AND cross-sector ratio > 0.5, max 3
- *   4. Catalyst  — top 30% by total connection count, not yet assigned, max 3
+ *   4. Catalyst  — top 30% by first-hour connections, max 3
  *   5. Builder   — everyone else, uncapped
  *
  * Important behavior:
+ *   Catalyst is now a normal role.
+ *   An attendee can only receive one role.
+ *
  *   If an attendee qualifies for a role but that role already has 3 people,
  *   they remain unassigned and continue to the next lower-precedence role check.
  */
-
-
 export function assignRoles(stats = []) {
   const total = stats.length;
 
@@ -110,9 +111,6 @@ export function assignRoles(stats = []) {
   const assigned = new Set();
   const roleById = new Map();
   const roleCounts = new Map();
-
-  // NEW: Catalyst is tracked independently.
-  const catalystIds = new Set();
 
   const canAssignRole = (role) => {
     if (role === "Builder") return true;
@@ -187,8 +185,9 @@ export function assignRoles(stats = []) {
 
   // 4. Catalyst — top 30% by first-hour connections, max 3.
   //
-  // Catalyst is independent of the normal role system.
-  // It does NOT use `assigned`, and it does NOT overwrite `roleById`.
+  // Catalyst is now part of the normal role system.
+  // It uses `assigned`, writes to `roleById`, and does not stack with
+  // Anchor, Connector, Explorer, or Builder.
   const catalystCandidates = [...stats].sort((a, b) => {
     const firstHourDiff =
       Number(b.connectionsFirstHour || 0) -
@@ -206,15 +205,11 @@ export function assignRoles(stats = []) {
 
   const catalystCutoff = Math.max(1, Math.ceil(total * 0.3));
 
-  let catalystCount = 0;
-
-  for (const stat of catalystCandidates.slice(0, catalystCutoff)) {
-    if (Number(stat.connectionsFirstHour || 0) <= 0) continue;
-    if (catalystCount >= MAX_PER_COMPETITIVE_ROLE) break;
-
-    catalystIds.add(stat.id);
-    catalystCount += 1;
-  }
+  assignFromCandidates(
+    catalystCandidates.slice(0, catalystCutoff),
+    "Catalyst",
+    (stat) => Number(stat.connectionsFirstHour || 0) > 0
+  );
 
   // 5. Builder — everyone else, uncapped.
   stats
@@ -225,9 +220,6 @@ export function assignRoles(stats = []) {
 
   return stats.map((stat) => {
     const primaryRole = roleById.get(stat.id) || "Builder";
-    const roles = catalystIds.has(stat.id)
-      ? [primaryRole, "Catalyst"]
-      : [primaryRole];
 
     return {
       ...stat,
@@ -235,11 +227,11 @@ export function assignRoles(stats = []) {
       // Keeps existing UI code working.
       role: primaryRole,
 
-      // New multi-role output.
-      roles,
+      // Kept for UI compatibility, but now always contains exactly one role.
+      roles: [primaryRole],
 
       // Easy UI flag.
-      isCatalyst: catalystIds.has(stat.id),
+      isCatalyst: primaryRole === "Catalyst",
     };
   });
 }
@@ -248,7 +240,7 @@ export function assignRoles(stats = []) {
  * computeRoles
  *
  * Takes attendee_stats rows and returns:
- *   Map<attendeeId, role>
+ *   Map<attendeeId, roles>
  */
 export function computeRoles(attendeeStatsRows = []) {
   const stats = assignRoles(computeAttendeeStats(attendeeStatsRows));
@@ -261,6 +253,7 @@ export function computeRoleList(attendeeStatsRows = []) {
 
   return new Map(stats.map((stat) => [stat.id, stat.roles]));
 }
+
 /**
  * computeRoleStats
  *

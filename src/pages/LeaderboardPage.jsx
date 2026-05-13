@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { TABLE_NAME } from "../data/config";
@@ -31,7 +29,7 @@ const ROLE_DEFINITIONS = [
     key: "connector",
     roleName: "Connector",
     name: "Connector",
-    logic: "Top 3 by cross-sector %",
+    logic: "Top 30% by cross-sector %",
     description: "You linked what should not yet be linked",
     color: "#1D9E75",
     scoreKey: "crossSectorCount",
@@ -40,7 +38,7 @@ const ROLE_DEFINITIONS = [
     key: "explorer",
     roleName: "Explorer",
     name: "Explorer",
-    logic: "Most sectors reached out of 6",
+    logic: "3+ sectors and 50%+ cross-sector",
     description: "You went where others did not — and brought people back",
     color: "#7F77DD",
     scoreKey: "sectorsReachedCount",
@@ -49,7 +47,7 @@ const ROLE_DEFINITIONS = [
     key: "catalyst",
     roleName: "Catalyst",
     name: "Catalyst",
-    logic: "Most connections in first hour",
+    logic: "Top 30% by first-hour connections",
     description: "You accelerated what was already in motion",
     color: "#D85A30",
     scoreKey: "connectionsFirstHour",
@@ -58,7 +56,7 @@ const ROLE_DEFINITIONS = [
     key: "builder",
     roleName: "Builder",
     name: "Builder",
-    logic: "The bridge — consistent",
+    logic: "Everyone else",
     description: "You showed up consistently and made it real",
     color: "#378ADD",
     scoreKey: "connectionCount",
@@ -134,16 +132,15 @@ function mergeStatsWithAttendees(attendeeStatsRows = [], attendees = []) {
 
 function hasLeaderboardRole(stat, roleName) {
   /**
-   * Catalyst is the only independent role.
-   * A person can be Catalyst and still keep their primary role.
-   */
-  if (roleName === "Catalyst") {
-    return Boolean(stat.isCatalyst) || stat.roles?.includes("Catalyst");
-  }
-
-  /**
-   * For non-Catalyst roles, support both the old single-role shape
-   * and the newer roles array shape.
+   * All roles are now mutually exclusive.
+   * Catalyst is treated like Anchor, Connector, Explorer, and Builder.
+   *
+   * Supports both:
+   *   - stat.role: "Catalyst"
+   *   - stat.roles: ["Catalyst"]
+   *
+   * The updated roleUtils returns a single primary role and a single-item
+   * roles array for UI compatibility.
    */
   return stat.role === roleName || stat.roles?.includes(roleName);
 }
@@ -197,7 +194,6 @@ function formatScore(value, roleKey) {
 
   return roleKey === "connector" ? `${roundedValue}%` : roundedValue;
 }
-
 
 function PulseDot() {
   return (
@@ -521,7 +517,14 @@ export default function Leaderboard() {
           >
             <div style={{ height: 160, marginBottom: 0 }} />
 
-            <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div
+              style={{
+                paddingTop: 16,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
               {[0, 1, 2].map((rankIndex) => {
                 const theme = RANK_THEMES[rankIndex];
 
@@ -534,11 +537,11 @@ export default function Leaderboard() {
                       alignItems: "center",
                       justifyContent: "center",
                       position: "relative",
-                      animation: `fadeSlideUp 0.6s ${0.3 + rankIndex * 0.1
-                        }s both`,
+                      animation: `fadeSlideUp 0.6s ${
+                        0.3 + rankIndex * 0.1
+                      }s both`,
                     }}
                   >
-                    {/* Horizontal connection row */}
                     <div
                       style={{
                         position: "absolute",
@@ -555,7 +558,6 @@ export default function Leaderboard() {
                       }}
                     />
 
-                    {/* Rank badge */}
                     <div
                       style={{
                         width: 64,
@@ -794,31 +796,6 @@ export default function Leaderboard() {
           }}
         >
           <div style={{ display: "flex", gap: 36, flex: 1 }}>
-            {/* <div>
-              <span
-                style={{
-                  fontSize: 32,
-                  fontWeight: 800,
-                  color: "#F0ECE4",
-                }}
-              >
-                {totalConnections}
-              </span>
-
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "#C0BCB5",
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  marginLeft: 10,
-                }}
-              >
-                Total Connections
-              </span>
-            </div> */}
-
             <div
               style={{
                 width: 1,
@@ -894,7 +871,6 @@ export default function Leaderboard() {
             >
               {totalConnections}/240
             </div>
-
           </div>
 
           <div
