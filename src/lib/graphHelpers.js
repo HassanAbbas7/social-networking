@@ -1,4 +1,4 @@
-import { getRoleForNode } from "./roleHelpers";
+
 
 export const sectorColors = {
   Tech: "#38bdf8",
@@ -73,10 +73,7 @@ export function buildGraphData(attendees, connections) {
     };
   });
 
-  const nodes = nodesWithoutRoles.map((node) => ({
-    ...node,
-    role: getRoleForNode(node, nodesWithoutRoles),
-  }));
+  const nodes = nodesWithoutRoles;
 
   const links = connections.map((connection) => {
     const sourceSector = sectorById.get(connection.scanner_id);

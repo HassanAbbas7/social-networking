@@ -111,6 +111,7 @@ export default function RecordsPage() {
       sector: record.sector || "",
       country: record.country || "",
       linkedin_url: record.linkedin_url || "",
+      photo_url: record.photo_url || "",
     });
   }
 
@@ -140,6 +141,7 @@ export default function RecordsPage() {
           sector: editForm.sector,
           country: editForm.country,
           linkedin_url: editForm.linkedin_url,
+          photo_url: editForm.photo_url
         })
         .eq("id", recordId)
         .select(`id, slug, ${expectedColumns.join(", ")}`)
@@ -345,6 +347,11 @@ export default function RecordsPage() {
                     <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
                       LinkedIn
                     </th>
+
+                    <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                      photo_url
+                    </th>
+
                     <th className="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
                       Actions
                     </th>
@@ -450,6 +457,33 @@ export default function RecordsPage() {
                           ) : record.linkedin_url ? (
                             <a
                               href={record.linkedin_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              View
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2 text-sm">
+                          {isEditing ? (
+                            <input
+                              value={editForm.photo_url}
+                              onChange={(event) =>
+                                updateEditField(
+                                  "photo_url",
+                                  event.target.value
+                                )
+                              }
+                              placeholder="https://media.licdn.com/dms/..."
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-gray-500"
+                            />
+                          ) : record.photo_url ? (
+                            <a
+                              href={record.photo_url}
                               target="_blank"
                               rel="noreferrer"
                               className="text-blue-600 hover:underline"

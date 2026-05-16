@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import NetworkGraph from "../components/graph/NetworkGraph";
 import { TABLE_NAME } from "../data/config";
-import { assignRoles, computeRoles } from "../utils/roleUtils";
+import { computeRoleStats, mergeStatsWithAttendees } from "../utils/roleUtils";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -139,22 +139,24 @@ function ScreenPage() {
     }
 
     const [
-      { data: freshAttendees, error: attendeesError },
-      { data: freshConnections, error: connectionsError },
+      { data: statsData, error: statsError },
+      { data: attendeesData, error: attendeesError },
     ] = await Promise.all([
-      supabase.from(TABLE_NAME).select("*"),
       supabase
-        .from(CONNECTIONS_TABLE)
+        .from("attendee_stats")
         .select("*")
-        .order("created_at", { ascending: true }),
+        .order("total_connections", { ascending: false }),
+      supabase.from(TABLE_NAME).select("*"),
     ]);
 
-    if (attendeesError || connectionsError) {
-      console.error("Error fetching roles:", attendeesError || connectionsError);
+    if (statsError || attendeesError) {
+      console.error("Error fetching roles:", statsError || attendeesError);
       return;
     }
 
-    const roleMap = computeRoles(freshAttendees || [], freshConnections || []);
+    const merged = mergeStatsWithAttendees(statsData || [], attendeesData || []);
+    const withRoles = computeRoleStats(merged);
+    const roleMap = new Map(withRoles.map((s) => [s.id, s.role]));
     setComputedRoleById(roleMap);
     setRevealRoles(true);
   }
