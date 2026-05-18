@@ -5,7 +5,7 @@ import { SECTOR_CONFIG } from "../../data/config";
 // Pass attendeeList as a prop — fetch from Supabase in the parent
 export default function EdgeScreen({ type, profile, onReset, attendeeList = [], onActivate }) {
   const [selected, setSelected] = useState("");
-  const cfg = SECTOR_CONFIG[profile?.sector] || SECTOR_CONFIG.Finance;
+  const cfg = SECTOR_CONFIG[profile?.sector] || SECTOR_CONFIG.consultancy;
 
   const configs = {
     self: {

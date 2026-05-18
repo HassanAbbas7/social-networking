@@ -11,7 +11,7 @@ export const expectedColumns = [
 
 export const sectorOptions = [
   "Tech",
-  "Finance",
+  "Consultancy",
   "Health",
   "Energy",
   "Public",
@@ -473,11 +473,21 @@ export const TABLE_NAME = "attendees";
 
 export const SECTOR_CONFIG = {
   tech: { color: "#378ADD", light: "#EBF4FF" },
-  finance: { color: "#7F77DD", light: "#EEEDFA" },
+  consultancy: { color: "#7F77DD", light: "#EEEDFA" },
   health: { color: "#1D9E75", light: "#E5F5EF" },
   energy: { color: "#EF9F27", light: "#FDF4E7" },
   "public": { color: "#D85A30", light: "#FCEEE9" },
   industry: { color: "#7A7A78", light: "#F2F2F1" },
 };
+
+export const DEFAULT_SECTOR_COLORS = {
+  tech: "#378ADD",
+  consultancy: "#7F77DD",
+  health: "#1D9E75",
+  energy: "#EF9F27",
+  public: "#D85A30",
+  industry: "#888780",
+};
+
 
 export const LOGO_URL = "/logo.png";

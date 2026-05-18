@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import NetworkGraph from "../components/graph/NetworkGraph";
-import { TABLE_NAME } from "../data/config";
+import { TABLE_NAME, DEFAULT_SECTOR_COLORS } from "../data/config";
 import { computeRoleStats, mergeStatsWithAttendees } from "../utils/roleUtils";
 
 const supabase = createClient(
@@ -11,14 +11,7 @@ const supabase = createClient(
 
 const CONNECTIONS_TABLE = "connections";
 
-const SECTOR_COLORS = {
-  tech: "#378ADD",
-  finance: "#7F77DD",
-  health: "#1D9E75",
-  energy: "#EF9F27",
-  public: "#D85A30",
-  industry: "#888780",
-};
+const SECTOR_COLORS = DEFAULT_SECTOR_COLORS;
 
 const ROLE_COLORS = {
   Anchor: "#EF9F27",
@@ -343,7 +336,7 @@ function ScreenPage() {
             ) : (
               <div className="flex flex-wrap items-center gap-4 text-xs text-[#4f4f4a]">
                 <LegendDot color={SECTOR_COLORS.tech} label="Tech" />
-                <LegendDot color={SECTOR_COLORS.finance} label="Finance" />
+                <LegendDot color={SECTOR_COLORS.consultancy} label="Consultancy" />
                 <LegendDot color={SECTOR_COLORS.health} label="Health" />
                 <LegendDot color={SECTOR_COLORS.energy} label="Energy" />
                 <LegendDot color={SECTOR_COLORS.public} label="Public" />

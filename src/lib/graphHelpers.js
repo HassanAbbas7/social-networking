@@ -2,7 +2,7 @@
 
 export const sectorColors = {
   Tech: "#38bdf8",
-  Finance: "#a78bfa",
+  Consultancy: "#a78bfa",
   Energy: "#EF9F27",
   Public: "#D85A30",
   Health: "#fb7185",

@@ -23,7 +23,6 @@
  *   sector
  */
 
-const MAX_PER_COMPETITIVE_ROLE = 3;
 
 /**
  * normalizeAttendeeStat
@@ -105,18 +104,16 @@ export function assignRoles(stats = []) {
 
     if (connectionDiff !== 0) return connectionDiff;
 
-    return String(a.id || "").localeCompare(String(b.id || ""));
+    return String(a.attendee?.name || "").localeCompare(
+  String(b.attendee?.name || "")
+);
   });
 
   const assigned = new Set();
   const roleById = new Map();
   const roleCounts = new Map();
 
-  const canAssignRole = (role) => {
-    if (role === "Builder") return true;
-
-    return Number(roleCounts.get(role) || 0) < MAX_PER_COMPETITIVE_ROLE;
-  };
+  const canAssignRole = () => true;
 
   const assign = (id, role) => {
     if (!canAssignRole(role)) return false;
@@ -133,20 +130,37 @@ export function assignRoles(stats = []) {
       if (assigned.has(stat.id)) continue;
       if (!predicate(stat)) continue;
 
-      if (!canAssignRole(role)) break;
-
       assign(stat.id, role);
     }
   };
 
-  // 1. Anchor — top 15% by total connection count, max 3.
+  // 1. Anchor — top 15% by total connection count.
   const anchorCutoff = Math.max(1, Math.ceil(total * 0.15));
+
+  console.log("Sorted without slice:", sorted.map((stat) => ({
+    id: stat.id,
+    connectionCount: stat.connectionCount,
+    name: stat.attendee.name
+  })));
+
+  console.log("Sorted before Anchor assignment:", sorted.slice(0, anchorCutoff).map((stat) => ({
+    id: stat.id,
+    connectionCount: stat.connectionCount,
+    name: stat.attendee.name
+  })));
   assignFromCandidates(sorted.slice(0, anchorCutoff), "Anchor");
 
-  // 2. Connector — top 30% of candidates with ≥3 connections,
-  // ranked by cross-sector ratio, max 3.
+  console.log("Nodes after Anchor assignment:", sorted.slice(0, anchorCutoff).map((stat) => ({
+    id: stat.id,
+    role: roleById.get(stat.id) || "None",
+    name: stat.attendee.name
+  })));
+
+  // 2. Connector should display cross-sector % (e.g. 80%) not a raw count. Someone with 4/5 cross-sector connections outranks someone with 6/20. Formula: (cross-sector connections / total connections) × 100, minimum 3 connections to qualify.
+  
+  // ranked by cross-sector ratio.
   const connectorCandidates = stats
-    .filter((stat) => stat.connectionCount >= 3)
+    .filter((stat) => !assigned.has(stat.id) && stat.connectionCount >= 3)
     .sort((a, b) => {
       const ratioDiff =
         Number(b.crossSectorRatio || 0) - Number(a.crossSectorRatio || 0);

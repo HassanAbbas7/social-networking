@@ -1,17 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import { buildGraphData } from "../../lib/graphHelpers";
-import { DEVELOPER_MODE, SECTOR_CONFIG } from "../../data/config";
+import { DEVELOPER_MODE, DEFAULT_SECTOR_COLORS } from "../../data/config";
 
 // Fallback palettes — overridden by props passed from ScreenPage
-const DEFAULT_SECTOR_COLORS = {
-  tech: "#378ADD",
-  finance: "#7F77DD",
-  health: "#1D9E75",
-  energy: "#EF9F27",
-  public: "#D85A30",
-  industry: "#888780",
-};
 
 const DEFAULT_ROLE_COLORS = {
   Anchor: "#EF9F27",
