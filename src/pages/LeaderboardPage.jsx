@@ -882,7 +882,7 @@ export default function Leaderboard() {
               flex: 1,
             }}
           >
-            <span
+            {/* <span
               style={{
                 fontSize: 16,
                 fontWeight: 700,
@@ -891,9 +891,9 @@ export default function Leaderboard() {
               }}
             >
               SCC
-            </span>
+            </span> */}
 
-            <span style={{ fontSize: 16, color: "#C0BCB5" }}>×</span>
+            {/* <span style={{ fontSize: 16, color: "#C0BCB5" }}>×</span> */}
 
             <span
               style={{

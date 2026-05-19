@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { expectedColumns, TABLE_NAME } from "../data/config";
+import { expectedColumns, TABLE_NAME, sectorOptions } from "../data/config";
 import { createClient } from "@supabase/supabase-js";
 import { saveAs } from "file-saver";
 import JSZip from "jszip";
@@ -189,28 +189,28 @@ export default function RecordsPage() {
   }
 
   async function handleDeleteAllConnections() {
-  const confirmed = window.confirm(
-    "WARNING:\nDeleting all connections cannot be undone.\nThe live network graph connections will be removed. Continue?"
-  );
+    const confirmed = window.confirm(
+      "WARNING:\nDeleting all connections cannot be undone.\nThe live network graph connections will be removed. Continue?"
+    );
 
-  if (!confirmed) return;
+    if (!confirmed) return;
 
-  try {
-    setBulkAction("delete-connections");
-    setError("");
+    try {
+      setBulkAction("delete-connections");
+      setError("");
 
-    const { error } = await supabase
-      .from("connections")
-      .delete()
-      .not("id", "is", null);
+      const { error } = await supabase
+        .from("connections")
+        .delete()
+        .not("id", "is", null);
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError(error.message);
+      }
+    } finally {
+      setBulkAction("");
     }
-  } finally {
-    setBulkAction("");
   }
-}
   async function handleDeleteAll() {
     const confirmed = window.confirm(
       `WARNING: \nDeleting ${records.length} records cannot be undone. \nThe live network graph will go blank! Continue?`
@@ -288,15 +288,15 @@ export default function RecordsPage() {
             </button>
 
             <button
-  type="button"
-  onClick={handleDeleteAllConnections}
-  disabled={bulkAction === "delete-connections"}
-  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
->
-  {bulkAction === "delete-connections"
-    ? "Deleting..."
-    : "Delete All Connections"}
-</button>
+              type="button"
+              onClick={handleDeleteAllConnections}
+              disabled={bulkAction === "delete-connections"}
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {bulkAction === "delete-connections"
+                ? "Deleting..."
+                : "Delete All Connections"}
+            </button>
 
             <button
               type="button"
@@ -415,13 +415,20 @@ export default function RecordsPage() {
 
                         <td className="px-4 py-2 text-sm text-gray-700">
                           {isEditing ? (
-                            <input
+                            <select
                               value={editForm.sector}
                               onChange={(event) =>
                                 updateEditField("sector", event.target.value)
                               }
                               className="w-full rounded-lg border border-gray-300 px-2 py-1 text-sm outline-none focus:border-gray-500"
-                            />
+                            >
+                              <option value="">Select sector</option>
+                              {sectorOptions.map((sector) => (
+                                <option key={sector} value={sector.toLowerCase()}>
+                                  {sector}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
                             record.sector || "—"
                           )}

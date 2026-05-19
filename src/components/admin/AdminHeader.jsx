@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 
+
 export default function AdminHeader() {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -76,7 +77,7 @@ export default function AdminHeader() {
 
                 Leaderboard
               </NavLink>
-              <NavLink to="/" className={linkClass}>
+              <NavLink to="/screen" className={linkClass}>
                 Live Screen
               </NavLink>
             </nav>

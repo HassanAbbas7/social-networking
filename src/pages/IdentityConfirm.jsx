@@ -33,12 +33,19 @@ export default function IdentityConfirm({ slug }) {
     if (slug) fetchProfile();
   }, [slug]);
 
-  const handleYes = () => {
-    if (!profile) return;
+  const handleYes = async () => {
+  if (!profile) return;
 
-    localStorage.setItem("profile", JSON.stringify(profile));
-    // window.location.href = "/";
-  };
+  const { error } = await supabase
+    .from("attendance")
+    .insert({ id: profile.id });
+
+  if (error) {
+    console.error("Failed to record attendance:", error);
+  }
+
+  localStorage.setItem("profile", JSON.stringify(profile));
+};
 
   const handleNo = () => {
     window.location.href = "/identity";
