@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { TABLE_NAME } from "../data/config";
+import { DEFAULT_LANGUAGE, getTranslations, normalizeLanguage, TABLE_NAME } from "../data/config";
+import { useParams } from "react-router-dom";
 import { computeRoleStats } from "../utils/roleUtils";
 
 const supabase = createClient(
@@ -15,7 +16,7 @@ const DONATION_PER_CONNECTION = Number(
   import.meta.env.VITE_ANBI_EURO_PER_CONNECTION || 50
 );
 
-const ROLE_DEFINITIONS = [
+const BASE_ROLE_DEFINITIONS = [
   {
     key: "anchor",
     roleName: "Anchor",
@@ -87,7 +88,7 @@ const RANK_THEMES = {
   },
 };
 
-function getDisplayName(stat) {
+function getDisplayName(stat, unknownAttendee = "Unknown attendee") {
   const attendee = stat.attendee || stat.raw || {};
 
   return (
@@ -95,7 +96,7 @@ function getDisplayName(stat) {
     attendee.full_name ||
     [attendee.first_name, attendee.last_name].filter(Boolean).join(" ") ||
     attendee.email ||
-    "Unknown attendee"
+    unknownAttendee
   );
 }
 
@@ -153,12 +154,12 @@ function getLeaderboardScore(stat, roleDef) {
   return Number(stat[roleDef.scoreKey] || 0);
 }
 
-function makeLeaderboardRoles(attendeeStatsRows) {
+function makeLeaderboardRoles(attendeeStatsRows, roleDefinitions) {
   const stats = computeRoleStats(attendeeStatsRows).filter(
     (stat) => Number(stat.connectionCount || 0) > 0
   );
 
-  return ROLE_DEFINITIONS.map((roleDef) => {
+  return roleDefinitions.map((roleDef) => {
     const entries = stats
       .filter((stat) => hasLeaderboardRole(stat, roleDef.roleName))
       .sort((a, b) => {
@@ -177,7 +178,7 @@ function makeLeaderboardRoles(attendeeStatsRows) {
       .slice(0, MAX_RANKS)
       .map((stat) => ({
         id: stat.id,
-        name: getDisplayName(stat),
+        name: getDisplayName(stat, roleDef.unknownAttendee),
         company: getCompany(stat),
         score: getLeaderboardScore(stat, roleDef),
       }));
@@ -220,6 +221,24 @@ function PulseDot() {
 }
 
 export default function Leaderboard() {
+  const { lang } = useParams();
+  console.log(`Detected language: ${lang}`);
+  const language = normalizeLanguage(lang);
+  const t = getTranslations(language).leaderboard;
+
+  const roleDefinitions = useMemo(
+    () =>
+      BASE_ROLE_DEFINITIONS.map((roleDef) => ({
+        ...roleDef,
+        name: t.roles?.[roleDef.key]?.name || roleDef.name,
+        logic: t.roles?.[roleDef.key]?.logic || roleDef.logic,
+        description:
+          t.roles?.[roleDef.key]?.description || roleDef.description,
+        unknownAttendee: t.unknownAttendee,
+      })),
+    [t]
+  );
+
   const [attendeeStats, setAttendeeStats] = useState([]);
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -247,7 +266,7 @@ export default function Leaderboard() {
         "Error loading leaderboard data:",
         attendeeStatsError || attendeesError
       );
-      setErrorMessage("Could not load the live leaderboard.");
+      setErrorMessage(t.loadError);
       setLoading(false);
       return;
     }
@@ -312,8 +331,8 @@ export default function Leaderboard() {
   );
 
   const roles = useMemo(
-    () => makeLeaderboardRoles(mergedAttendeeStats),
-    [mergedAttendeeStats]
+    () => makeLeaderboardRoles(mergedAttendeeStats, roleDefinitions),
+    [mergedAttendeeStats, roleDefinitions]
   );
 
   /**
@@ -356,7 +375,7 @@ export default function Leaderboard() {
           fontFamily: "'Outfit', sans-serif",
         }}
       >
-        Loading live leaderboard...
+        {t.loading}
       </main>
     );
   }
@@ -451,7 +470,7 @@ export default function Leaderboard() {
                 textAlign: "left",
               }}
             >
-              Building Ecosystems
+              {t.brand}
             </div>
 
             <div
@@ -472,7 +491,7 @@ export default function Leaderboard() {
                   textTransform: "uppercase",
                 }}
               >
-                Live Connection Feed
+                {t.liveFeed}
               </span>
             </div>
           </div>
@@ -492,7 +511,7 @@ export default function Leaderboard() {
                 filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.5))",
               }}
             >
-              Top Connectors
+              {t.title}
             </h1>
           </div>
 
@@ -576,7 +595,7 @@ export default function Leaderboard() {
                         zIndex: 1,
                       }}
                     >
-                      {theme.label}
+                      {t.ranks?.[rankIndex] || theme.label}
                     </div>
                   </div>
                 );
@@ -709,8 +728,8 @@ export default function Leaderboard() {
                             textAlign: "center",
                           }}
                         >
-                          Not enough connections, <br />
-                          keep connecting
+                          {t.emptyRankLine1} <br />
+                          {t.emptyRankLine2}
                         </span>
                       </div>
                     );
@@ -771,7 +790,7 @@ export default function Leaderboard() {
                           }}
                         >
                           {role.key === "explorer"
-                            ? `${formatScore(entry.score, role.key)}/6`
+                            ? `${formatScore(entry.score, role.key)}${t.explorerMaxSuffix}`
                             : formatScore(entry.score, role.key)}
                         </div>
                       </div>
@@ -826,7 +845,7 @@ export default function Leaderboard() {
                   marginLeft: 10,
                 }}
               >
-                Cross-Sector
+                {t.crossSector}
               </span>
             </div>
           </div>
@@ -850,7 +869,7 @@ export default function Leaderboard() {
                 marginBottom: 6,
               }}
             >
-              <span>Connection Target</span>
+              <span>{t.connectionTarget}</span>
             </div>
 
             <div

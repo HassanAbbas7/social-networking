@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import { buildGraphData } from "../../lib/graphHelpers";
-import { DEVELOPER_MODE, DEFAULT_SECTOR_COLORS } from "../../data/config";
-
-// Fallback palettes — overridden by props passed from ScreenPage
+import {
+  DEVELOPER_MODE,
+  DEFAULT_SECTOR_COLORS_NL,
+  SECTOR_CONFIG_NL,
+} from "../../data/config";
 
 const DEFAULT_ROLE_COLORS = {
   Anchor: "#EF9F27",
@@ -25,6 +27,22 @@ function getNodeRadius(d) {
   return Math.max(14, Math.min(36, 8 + d.connectionCount * 2.5));
 }
 
+function getSectorKey(value) {
+  return String(value || "overheid")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+}
+
+function getSectorLabel(value, sectorConfig) {
+  const sectorKey = getSectorKey(value);
+
+  return (
+    sectorConfig?.[sectorKey]?.label ||
+    String(value || "Overheid").replace(/_/g, " ")
+  );
+}
+
 function getDisplayedName(d) {
   return !DEVELOPER_MODE ? d.name?.split(" ")[0] || "" : d.name || "";
 }
@@ -35,7 +53,8 @@ function NetworkGraph({
   showNames = false,
   revealRoles = false,
   layoutVersion = 0,
-  sectorColors = DEFAULT_SECTOR_COLORS,
+  sectorColors = DEFAULT_SECTOR_COLORS_NL,
+  sectorConfig = SECTOR_CONFIG_NL,
   roleColors = DEFAULT_ROLE_COLORS,
 }) {
   const svgRef = useRef(null);
@@ -73,25 +92,24 @@ function NetworkGraph({
     if (revealRoles && node.role) {
       return roleColors[node.role] || "#888780";
     }
-    const sectorKey = (node.sector || "industry").toLowerCase().replace(/\s+/g, "_");
+
+    const sectorKey = getSectorKey(node.sector);
+
     return sectorColors[sectorKey] || "#888780";
   };
 
-function getLabelCollisionRadius(d) {
-  const name = !DEVELOPER_MODE
-    ? d.name?.split(" ")[0] || ""
-    : d.name || "";
+  function getLabelCollisionRadius(d) {
+    const name = getDisplayedName(d);
+    const fontSize = 16;
+    const estimatedTextWidth = name.length * fontSize * 0.55;
+    const nodeRadius = getNodeRadius(d);
 
-  const fontSize = 16;
-  const estimatedTextWidth = name.length * fontSize * 0.55;
-  const nodeRadius = getNodeRadius(d);
+    return nodeRadius + estimatedTextWidth + 10;
+  }
 
-  return nodeRadius + estimatedTextWidth + 10;
-}
   useEffect(() => {
     dimensionsRef.current = dimensions;
   }, [dimensions]);
-
 
   useEffect(() => {
     function updateDimensions() {
@@ -144,9 +162,7 @@ function getLabelCollisionRadius(d) {
     svg.selectAll("*").interrupt();
     svg.selectAll("*").remove();
 
-    svg
-      .style("cursor", "grab")
-      .style("background", "#f7f7f5");
+    svg.style("cursor", "grab").style("background", "#f7f7f5");
 
     const graphGroup = svg.append("g");
     const linkGroup = graphGroup.append("g");
@@ -192,14 +208,21 @@ function getLabelCollisionRadius(d) {
       )
       .force("charge", d3.forceManyBody().strength(-450))
       .force("center", null)
-      .force("x", d3.forceX(width / 2).strength((d) => d.connectionCount > 0 ? 0.045 : 0.012))
-      .force("y", d3.forceY(height / 2).strength((d) => d.connectionCount > 0 ? 0.06 : 0.015))
+      .force(
+        "x",
+        d3
+          .forceX(width / 2)
+          .strength((d) => (d.connectionCount > 0 ? 0.045 : 0.012))
+      )
+      .force(
+        "y",
+        d3
+          .forceY(height / 2)
+          .strength((d) => (d.connectionCount > 0 ? 0.06 : 0.015))
+      )
       .force(
         "collision",
-        d3
-          .forceCollide()
-          .radius(getLabelCollisionRadius)
-          .iterations(4)
+        d3.forceCollide().radius(getLabelCollisionRadius).iterations(4)
       );
 
     simulation.on("tick", () => {
@@ -249,12 +272,12 @@ function getLabelCollisionRadius(d) {
       }
 
       if (labelSelectionRef.current) {
-        labelSelectionRef.current
-          .attr("transform", (d) => {
-            const x = getSafeNumber(d.x, currentWidth / 2) + getNodeRadius(d) + 5;
-            const y = getSafeNumber(d.y, currentHeight / 2);
-            return `translate(${x},${y})`;
-          });
+        labelSelectionRef.current.attr("transform", (d) => {
+          const x = getSafeNumber(d.x, currentWidth / 2) + getNodeRadius(d) + 5;
+          const y = getSafeNumber(d.y, currentHeight / 2);
+
+          return `translate(${x},${y})`;
+        });
       }
     });
 
@@ -396,6 +419,7 @@ function getLabelCollisionRadius(d) {
     });
 
     simulation.nodes(nextNodes);
+
     nodeByIdRef.current = new Map(nextNodes.map((node) => [node.id, node]));
 
     simulation
@@ -406,15 +430,12 @@ function getLabelCollisionRadius(d) {
 
     simulation.force(
       "collision",
-      d3
-        .forceCollide()
-        .radius(getLabelCollisionRadius)
-        .iterations(4)
+      d3.forceCollide().radius(getLabelCollisionRadius).iterations(4)
     );
 
     linkGroupRef.current.selectAll("line").interrupt();
     nodeGroupRef.current.selectAll("circle").interrupt();
-    labelGroupRef.current.selectAll("text").interrupt();
+    labelGroupRef.current.selectAll("g.node-label").interrupt();
 
     const links = linkGroupRef.current
       .selectAll("line")
@@ -440,47 +461,81 @@ function getLabelCollisionRadius(d) {
               return getSafeNumber(target?.y, height / 2);
             })
             .attr("stroke", (d) => {
-              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
-              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
-              return (sNode && tNode && sNode.sector !== tNode.sector) ? "#008080" : "#B0ACA4";
+              const sourceNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const targetNode = nodeByIdRef.current.get(getNodeId(d.target));
+
+              return sourceNode &&
+                targetNode &&
+                sourceNode.sector !== targetNode.sector
+                ? "#008080"
+                : "#B0ACA4";
             })
             .attr("stroke-width", (d) => {
-              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
-              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
-              return (sNode && tNode && sNode.sector !== tNode.sector) ? 2.5 : 1.5;
+              const sourceNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const targetNode = nodeByIdRef.current.get(getNodeId(d.target));
+
+              return sourceNode &&
+                targetNode &&
+                sourceNode.sector !== targetNode.sector
+                ? 2.5
+                : 1.5;
             })
             .attr("stroke-opacity", 0)
             .attr("stroke-linecap", "round")
             .attr("stroke-dasharray", (d) =>
               newLinkKeys.has(d.key) ? "4 4" : null
             )
-            .call((enter) =>
-              enter
+            .call((enterSelection) =>
+              enterSelection
                 .transition()
                 .duration(500)
                 .attr("stroke-opacity", (d) => {
-                  const sNode = nodeByIdRef.current.get(getNodeId(d.source));
-                  const tNode = nodeByIdRef.current.get(getNodeId(d.target));
-                  return (sNode && tNode && sNode.sector !== tNode.sector) ? 0.6 : 0.4;
+                  const sourceNode = nodeByIdRef.current.get(
+                    getNodeId(d.source)
+                  );
+                  const targetNode = nodeByIdRef.current.get(
+                    getNodeId(d.target)
+                  );
+
+                  return sourceNode &&
+                    targetNode &&
+                    sourceNode.sector !== targetNode.sector
+                    ? 0.6
+                    : 0.4;
                 })
                 .attr("stroke-dasharray", null)
             ),
         (update) =>
           update
             .attr("stroke", (d) => {
-              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
-              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
-              return (sNode && tNode && sNode.sector !== tNode.sector) ? "#008080" : "#B0ACA4";
+              const sourceNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const targetNode = nodeByIdRef.current.get(getNodeId(d.target));
+
+              return sourceNode &&
+                targetNode &&
+                sourceNode.sector !== targetNode.sector
+                ? "#008080"
+                : "#B0ACA4";
             })
             .attr("stroke-width", (d) => {
-              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
-              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
-              return (sNode && tNode && sNode.sector !== tNode.sector) ? 2.5 : 1.5;
+              const sourceNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const targetNode = nodeByIdRef.current.get(getNodeId(d.target));
+
+              return sourceNode &&
+                targetNode &&
+                sourceNode.sector !== targetNode.sector
+                ? 2.5
+                : 1.5;
             })
             .attr("stroke-opacity", (d) => {
-              const sNode = nodeByIdRef.current.get(getNodeId(d.source));
-              const tNode = nodeByIdRef.current.get(getNodeId(d.target));
-              return (sNode && tNode && sNode.sector !== tNode.sector) ? 0.6 : 0.4;
+              const sourceNode = nodeByIdRef.current.get(getNodeId(d.source));
+              const targetNode = nodeByIdRef.current.get(getNodeId(d.target));
+
+              return sourceNode &&
+                targetNode &&
+                sourceNode.sector !== targetNode.sector
+                ? 0.6
+                : 0.4;
             })
             .attr("stroke-linecap", "round"),
         (exit) => exit.interrupt().remove()
@@ -491,34 +546,31 @@ function getLabelCollisionRadius(d) {
       .data(nextNodes, (d) => d.id)
       .join(
         (enter) => {
-
-          // This was glowless and flat
-          // const enteredNodes = enter
-          //   .append("circle")
-          //   .attr("cx", (d) => getSafeNumber(d.x, width / 2))
-          //   .attr("cy", (d) => getSafeNumber(d.y, height / 2))
-          //   .attr("r", 0)
-          //   .attr("fill", getNodeColor)
-          //   .attr("stroke", "rgba(255,255,255,0.15)")
-          //   .attr("stroke-width", 1.5)
-          //-----------------------------------------
-          // Add radial gradient defs per node
           const defs = d3.select(svgRef.current).select("defs").empty()
             ? d3.select(svgRef.current).append("defs")
             : d3.select(svgRef.current).select("defs");
 
-          enter.each(function(d) {
+          enter.each(function createGradient(d) {
             const color = getNodeColor(d);
             const gradId = `node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")}`;
-            
+
             if (defs.select(`#${gradId}`).empty()) {
-              const grad = defs.append("radialGradient")
+              const grad = defs
+                .append("radialGradient")
                 .attr("id", gradId)
                 .attr("cx", "35%")
                 .attr("cy", "35%")
                 .attr("r", "65%");
-              grad.append("stop").attr("offset", "0%").attr("stop-color", d3.color(color).brighter(0.8));
-              grad.append("stop").attr("offset", "100%").attr("stop-color", color);
+
+              grad
+                .append("stop")
+                .attr("offset", "0%")
+                .attr("stop-color", d3.color(color).brighter(0.8));
+
+              grad
+                .append("stop")
+                .attr("offset", "100%")
+                .attr("stop-color", color);
             }
           });
 
@@ -529,16 +581,19 @@ function getLabelCollisionRadius(d) {
             .attr("r", 0)
             .attr("fill", (d) => {
               const gradId = `node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")}`;
+
               return `url(#${gradId})`;
             })
             .attr("stroke", (d) => {
               const color = getNodeColor(d);
+
               return d3.color(color).brighter(0.3).formatHex();
             })
             .attr("stroke-width", 2)
             .attr("stroke-opacity", 0.4)
             .style("filter", (d) => {
               const color = getNodeColor(d);
+
               return `drop-shadow(0 0 6px ${color}66)`;
             })
             .call(
@@ -569,9 +624,10 @@ function getLabelCollisionRadius(d) {
             );
 
           enteredNodes.append("title").text((d) => {
-            return `${d.name || "Attendee"} · ${d.company || ""} · ${
-              d.sector || ""
-            }`;
+            return `${d.name || "Attendee"} · ${d.company || ""} · ${getSectorLabel(
+              d.sector,
+              sectorConfig
+            )}`;
           });
 
           enteredNodes
@@ -581,161 +637,153 @@ function getLabelCollisionRadius(d) {
 
           return enteredNodes;
         },
-        // (update) =>
-        //   update.call((update) =>
-        //     update
-        //       .transition()
-        //       .duration(1000)
-        //       .attr("fill", getNodeColor)
-        //       .transition()
-        //       .duration(300)
-        //       .attr("r", (d) => 4 + d.connectionCount * 0.9)
-        //   ),
         (update) =>
-          update.call((sel) => {
-            sel.each(function(d) {
+          update.call((selection) => {
+            selection.each(function updateGradient(d) {
               const color = getNodeColor(d);
               const gradId = `node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")}`;
               const defs = d3.select(svgRef.current).select("defs");
+
               defs.select(`#${gradId}`).remove();
-              const grad = defs.append("radialGradient")
+
+              const grad = defs
+                .append("radialGradient")
                 .attr("id", gradId)
-                .attr("cx", "35%").attr("cy", "35%").attr("r", "65%");
-              grad.append("stop").attr("offset", "0%").attr("stop-color", d3.color(color).brighter(0.8));
-              grad.append("stop").attr("offset", "100%").attr("stop-color", color);
+                .attr("cx", "35%")
+                .attr("cy", "35%")
+                .attr("r", "65%");
+
+              grad
+                .append("stop")
+                .attr("offset", "0%")
+                .attr("stop-color", d3.color(color).brighter(0.8));
+
+              grad
+                .append("stop")
+                .attr("offset", "100%")
+                .attr("stop-color", color);
             });
 
-            sel
+            selection
               .transition()
               .duration(1000)
-              .attr("fill", (d) => `url(#node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")})`)
-              .attr("stroke", (d) => d3.color(getNodeColor(d)).brighter(0.3).formatHex())
-              .style("filter", (d) => `drop-shadow(0 0 6px ${getNodeColor(d)}66)`)
+              .attr("fill", (d) => {
+                const gradId = `node-grad-${d.id.replace(/[^a-zA-Z0-9]/g, "")}`;
+
+                return `url(#${gradId})`;
+              })
+              .attr("stroke", (d) =>
+                d3.color(getNodeColor(d)).brighter(0.3).formatHex()
+              )
+              .style(
+                "filter",
+                (d) => `drop-shadow(0 0 6px ${getNodeColor(d)}66)`
+              )
               .transition()
               .duration(300)
               .attr("r", (d) => getNodeRadius(d));
           }),
         (exit) =>
-          exit
-            .transition()
-            .duration(300)
-            .attr("r", 0)
-            .remove()
+          exit.transition().duration(300).attr("r", 0).remove()
       );
 
     nodes.select("title").text((d) => {
-      return `${d.name || "Attendee"} · ${d.company || ""} · ${
-        d.sector || ""
-      }`;
+      return `${d.name || "Attendee"} · ${d.company || ""} · ${getSectorLabel(
+        d.sector,
+        sectorConfig
+      )}`;
     });
-
-    // const labels = labelGroupRef.current
-    //   .selectAll("text")
-    //   .data(nextNodes, (d) => d.id)
-    //   .join(
-    //     (enter) =>
-    //       enter
-    //         .append("text")
-    //         // if (!DEVELOPER_MODE) {
-    //         // .text((d) => d.name?.split(" ")[0] || "")
-    //         // } else {
-    //         //   .text((d) => d.name || "")
-    //         // }
-    //         .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "": d.name || "")
-    //         .attr("x", (d) => getSafeNumber(d.x, width / 2) + getNodeRadius(d) + 5)
-    //         .attr("y", (d) => getSafeNumber(d.y, height / 2) + 3)
-    //         .attr("font-size", 16)
-    //         .attr("font-weight", 500)
-    //         .attr("fill", "#2A2826")
-    //         .attr("paint-order", null)
-    //         .attr("stroke", null)
-    //         .attr("stroke-width", null)
-    //         .style("filter", "drop-shadow(0 1px 2px rgba(255,255,255,0.8))")
-    //         .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif")
-    //         .style("letter-spacing", "0.01em")
-    //         .attr("opacity", 0)
-    //         .style("pointer-events", "none")
-    //         .call((enter) =>
-    //           enter
-    //             .transition()
-    //             .duration(400)
-    //             .attr("opacity", showNames ? 1 : 0)
-    //         ),
-    //     (update) =>
-    //       update
-    //         .text((d) => !DEVELOPER_MODE? d.name?.split(" ")[0] || "": d.name || "")
-    //         .attr("opacity", showNames ? 1 : 0),
-    //     (exit) =>
-    //       exit
-    //         .transition()
-    //         .duration(300)
-    //         .attr("opacity", 0)
-    //         .remove()
-    //   );
 
     const labels = labelGroupRef.current
       .selectAll("g.node-label")
       .data(nextNodes, (d) => d.id)
       .join(
         (enter) => {
-          const g = enter
+          const group = enter
             .append("g")
             .attr("class", "node-label")
             .attr("transform", (d) => {
               const x = getSafeNumber(d.x, width / 2) + getNodeRadius(d) + 5;
               const y = getSafeNumber(d.y, height / 2);
+
               return `translate(${x},${y})`;
             })
             .attr("opacity", 0)
             .style("pointer-events", "none");
 
-          g.append("text")
+          group
+            .append("text")
             .attr("class", "label-name")
-            .text((d) => !DEVELOPER_MODE ? d.name?.split(" ")[0] || "" : d.name || "")
+            .text((d) => getDisplayedName(d))
             .attr("y", 0)
             .attr("font-size", 15)
             .attr("font-weight", 600)
             .attr("fill", "#2A2826")
-            .style("filter", "drop-shadow(0 1px 2px rgba(255,255,255,0.8))")
-            .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif");
+            .style(
+              "filter",
+              "drop-shadow(0 1px 2px rgba(255,255,255,0.8))"
+            )
+            .style(
+              "font-family",
+              "'Inter', 'SF Pro Display', system-ui, sans-serif"
+            );
 
-          g.append("text")
+          group
+            .append("text")
             .attr("class", "label-sub")
             .text((d) => {
-              if (revealRoles && d.role) return `${d.role} · ${(d.sector || "").replace(/_/g, " ")}`;
-              return (d.sector || "").replace(/_/g, " ");
+              const sectorLabel = getSectorLabel(d.sector, sectorConfig);
+
+              if (revealRoles && d.role) {
+                return `${d.role} · ${sectorLabel}`;
+              }
+
+              return sectorLabel;
             })
             .attr("y", 14)
             .attr("font-size", 10)
             .attr("font-weight", 500)
             .attr("fill", (d) => {
-              if (revealRoles && d.role) return roleColors[d.role] || "#888780";
-              const sectorKey = (d.sector || "industry").toLowerCase().replace(/\s+/g, "_");
+              if (revealRoles && d.role) {
+                return roleColors[d.role] || "#888780";
+              }
+
+              const sectorKey = getSectorKey(d.sector);
+
               return sectorColors[sectorKey] || "#888780";
             })
-            .style("font-family", "'Inter', 'SF Pro Display', system-ui, sans-serif")
+            .style(
+              "font-family",
+              "'Inter', 'SF Pro Display', system-ui, sans-serif"
+            )
             .style("letter-spacing", "0.04em")
-            .style("text-transform", "capitalize")
             .attr("opacity", showNames ? 1 : 0);
 
-          g.transition()
-            .duration(400)
-            .attr("opacity", 1);
+          group.transition().duration(400).attr("opacity", 1);
 
-          return g;
+          return group;
         },
         (update) => {
-          update.select(".label-name")
-            .text((d) => !DEVELOPER_MODE ? d.name?.split(" ")[0] || "" : d.name || "");
+          update.select(".label-name").text((d) => getDisplayedName(d));
 
-          update.select(".label-sub")
+          update
+            .select(".label-sub")
             .text((d) => {
-              if (revealRoles && d.role) return `${d.role} · ${(d.sector || "").replace(/_/g, " ")}`;
-              return (d.sector || "").replace(/_/g, " ");
+              const sectorLabel = getSectorLabel(d.sector, sectorConfig);
+
+              if (revealRoles && d.role) {
+                return `${d.role} · ${sectorLabel}`;
+              }
+
+              return sectorLabel;
             })
             .attr("fill", (d) => {
-              if (revealRoles && d.role) return roleColors[d.role] || "#888780";
-              const sectorKey = (d.sector || "industry").toLowerCase().replace(/\s+/g, "_");
+              if (revealRoles && d.role) {
+                return roleColors[d.role] || "#888780";
+              }
+
+              const sectorKey = getSectorKey(d.sector);
+
               return sectorColors[sectorKey] || "#888780";
             })
             .attr("opacity", showNames ? 1 : 0);
@@ -745,11 +793,7 @@ function getLabelCollisionRadius(d) {
           return update;
         },
         (exit) =>
-          exit
-            .transition()
-            .duration(300)
-            .attr("opacity", 0)
-            .remove()
+          exit.transition().duration(300).attr("opacity", 0).remove()
       );
 
     linkSelectionRef.current = links;
@@ -782,7 +826,14 @@ function getLabelCollisionRadius(d) {
     } else {
       simulation.alpha(0.2).restart();
     }
-  }, [graphData, revealRoles, showNames]);
+  }, [
+    graphData,
+    revealRoles,
+    showNames,
+    sectorColors,
+    sectorConfig,
+    roleColors,
+  ]);
 
   return (
     <div className="h-full w-full bg-[#f7f7f5]">

@@ -1,5 +1,7 @@
 import React from "react";
 import { countryMap, SECTOR_CONFIG } from "../../data/config";
+import { useParams } from "react-router-dom";
+import { getTranslations, normalizeLanguage } from "../../data/config";
 
 
 // ─── SVG Flags ────────────────────────────────────────────────────────────────
@@ -86,6 +88,18 @@ export default function ProfileScreen({ profile, onConnect, connecting }) {
 
   const firstName = profile.name?.split(" ")[0] || "";
   const lastName = profile.name?.split(" ").slice(1).join(" ") || "";
+
+
+  const { lang } = useParams();
+
+const language = normalizeLanguage(lang);
+const t = getTranslations(language).profileScreen;
+
+function replaceVars(template, values = {}) {
+  return String(template || "").replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    return values[key] ?? "";
+  });
+}
 
   const handleConnect = async () => {
     if (connecting) return;
@@ -227,38 +241,40 @@ export default function ProfileScreen({ profile, onConnect, connecting }) {
         {/* Button */}
         <div style={{ padding: "0 20px 40px" }}>
           <button
-            onClick={handleConnect}
-            disabled={connecting}
-            style={{
-              width: "100%",
-              padding: "18px 0",
-              background: connecting
-                ? "#00808099"
-                : "linear-gradient(135deg, #008080 0%, #006666 100%)",
-              border: "none",
-              borderRadius: 16,
-              color: "#FFF",
-              fontSize: 17,
-              fontWeight: 700,
-              cursor: connecting ? "default" : "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              boxShadow: connecting
-                ? "none"
-                : "0 8px 32px rgba(0,128,128,0.45)",
-            }}
-          >
-            {connecting ? (
-              <>
-                <Spinner />
-                Connecting...
-              </>
-            ) : (
-              `Connect with ${firstName}`
-            )}
-          </button>
+  onClick={handleConnect}
+  disabled={connecting}
+  style={{
+    width: "100%",
+    padding: "18px 0",
+    background: connecting
+      ? "#00808099"
+      : "linear-gradient(135deg, #008080 0%, #006666 100%)",
+    border: "none",
+    borderRadius: 16,
+    color: "#FFF",
+    fontSize: 17,
+    fontWeight: 700,
+    cursor: connecting ? "default" : "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    boxShadow: connecting
+      ? "none"
+      : "0 8px 32px rgba(0,128,128,0.45)",
+  }}
+>
+  {connecting ? (
+    <>
+      <Spinner />
+      {t.connecting}
+    </>
+  ) : (
+    replaceVars(t.connectWith, {
+      name: firstName,
+    })
+  )}
+</button>
         </div>
       </div>
     </>

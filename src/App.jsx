@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import ScreenPage from "./pages/ScreenPage";
 import CsvUploader from "./pages/CsvUpload";
@@ -7,26 +7,22 @@ import ConnectPage from "./pages/Connect";
 import IdentitySelect from "./pages/IdentitySelect";
 import AdminLayout from "./layouts/AdminLayout";
 import Leaderboard from "./pages/LeaderboardPage";
-
 import HomePage from "./pages/HomePage";
-import { DEVELOPER_MODE } from "./data/config";
 
+// ── Utility pages (language-agnostic) ────────────────────────────────────────
 
 const OpenLinkedInButtonPage = () => {
-
   function openLinkedIn(input) {
-    localStorage.clear(); // Clear localStorage to reset state for next profile
+    localStorage.clear();
     const isAndroid = /android/i.test(navigator.userAgent);
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
     const getSlug = (value) => {
       if (!value) return "";
       const trimmed = String(value).trim();
-
       if (!/^https?:\/\//i.test(trimmed) && !/^www\./i.test(trimmed)) {
         return trimmed.replace(/^\/+|\/+$/g, "");
       }
-
       try {
         const url = new URL(
           /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
@@ -48,7 +44,6 @@ const OpenLinkedInButtonPage = () => {
     const webURL = `https://www.linkedin.com/in/${encodeURIComponent(slug)}`;
 
     if (isAndroid) {
-      // ✅ Fix: use www.linkedin.com as the host in the intent URI
       window.location.href =
         `intent://www.linkedin.com/in/${encodeURIComponent(slug)}` +
         `#Intent;` +
@@ -60,17 +55,13 @@ const OpenLinkedInButtonPage = () => {
         `end`;
     } else if (isIOS) {
       window.location.href = `linkedin://in/${encodeURIComponent(slug)}`;
-      setTimeout(() => {
-        window.location.href = webURL;
-      }, 1500);
+      setTimeout(() => { window.location.href = webURL; }, 1500);
     } else {
       window.location.href = webURL;
     }
   }
 
-  // ✅ Fix: use a button + controlled input, not onChange
   const [value, setValue] = useState("");
-
   return (
     <div>
       <h1>Open LinkedIn Profile</h1>
@@ -80,9 +71,7 @@ const OpenLinkedInButtonPage = () => {
         value={value}
         onChange={(e) => setValue(e.target.value)}
       />
-      <button onClick={() => openLinkedIn(value)}>
-        Open in LinkedIn
-      </button>
+      <button onClick={() => openLinkedIn(value)}>Open in LinkedIn</button>
     </div>
   );
 };
@@ -90,43 +79,76 @@ const OpenLinkedInButtonPage = () => {
 const ClearLocalStorage = () => {
   useEffect(() => {
     localStorage.clear();
-
-    const timer = setTimeout(() => {
-      window.location.href = "/identity";
-    }, 4000);
-
+    const timer = setTimeout(() => { window.location.href = "/en/identity"; }, 4000);
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <div style={{ padding: "2rem", textAlign: "center" }}>
       <h1>Profile Cleared</h1>
-      <p>
-        Your locally stored profile is cleared, redirecting you to identity select page.
-      </p>
+      <p>Your locally stored profile is cleared, redirecting you to identity select page.</p>
     </div>
   );
 };
 
+// ── App ───────────────────────────────────────────────────────────────────────
+
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/screen" element={<ScreenPage />} />
-        <Route path="/leaderboard" element={<Leaderboard />} />
-        {/* <Route path="/" element={<OpenLinkedInButtonPage />} /> */}
-        <Route path="/forget" element={<ClearLocalStorage />} />
-        <Route path="/connect/:slug" element={<ConnectPage />} />
-        <Route path="/identity" element={<IdentitySelect />} />
+  <Router>
+    <Routes>
+      {/*
+       * Root redirect — send bare "/" to the default English home.
+       * Deep-links like /connect/:slug stay language-agnostic so that
+       * QR codes printed on badges don't need a locale prefix.
+       */}
+      <Route path="/" element={<Navigate to="/en" replace />} />
 
-        <Route path="/admin" element={<AdminLayout />}>
+      {/* Language-agnostic utility routes */}
+      <Route path="/forget" element={<ClearLocalStorage />} />
+      <Route path="/connect/:slug" element={<ConnectPage />} />
+
+      {/* ── Localised routes: /en/... and /nl/... ───────────────────────── */}
+      <Route path="/:lang">
+        {/* Home: /en and /nl */}
+        <Route index element={<HomePage />} />
+
+        {/* Main pages */}
+        <Route path="screen" element={<ScreenPage />} />
+        <Route path="leaderboard" element={<Leaderboard />} />
+        <Route path="identity" element={<IdentitySelect />} />
+
+        {/* Connect with locale context */}
+        <Route path="connect/:slug" element={<ConnectPage />} />
+
+        {/* Admin routes */}
+        <Route path="admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="upload" replace />} />
           <Route path="upload" element={<CsvUploader />} />
           <Route path="records" element={<RecordsPage />} />
         </Route>
-      </Routes>
-    </Router>
-  );
+      </Route>
+
+      {/* Legacy paths — redirect to /en equivalent so old links still work */}
+      <Route path="/screen" element={<Navigate to="/en/screen" replace />} />
+      <Route
+        path="/leaderboard"
+        element={<Navigate to="/en/leaderboard" replace />}
+      />
+      <Route
+        path="/identity"
+        element={<Navigate to="/en/identity" replace />}
+      />
+      <Route
+        path="/admin/*"
+        element={<Navigate to="/en/admin/upload" replace />}
+      />
+
+      {/* Catch-all fallback */}
+      <Route path="*" element={<Navigate to="/en" replace />} />
+    </Routes>
+  </Router>
+);
 }
 
 export default App;

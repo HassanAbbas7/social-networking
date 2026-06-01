@@ -9,6 +9,514 @@ export const expectedColumns = [
   "photo_url"
 ];
 
+export const SUPPORTED_LANGUAGES = ["en", "nl"];
+export const DEFAULT_LANGUAGE = "en";
+
+export const LANGUAGE_CONFIG = {
+  en: {
+    label: "English",
+    shortLabel: "EN",
+    leaderboard: {
+      brand: "Building Ecosystems",
+      liveFeed: "Live Connection Feed",
+      title: "Top Connectors",
+      loading: "Loading live leaderboard...",
+      loadError: "Could not load the live leaderboard.",
+      unknownAttendee: "Unknown attendee",
+      emptyRankLine1: "Not enough connections,",
+      emptyRankLine2: "keep connecting",
+      crossSector: "Cross-Sector",
+      connectionTarget: "Connection Target",
+      explorerMaxSuffix: "/6",
+      ranks: ["1ST", "2ND", "3RD"],
+      roles: {
+        anchor: {
+          name: "Anchor",
+          logic: "Top 15% by total connections",
+          description: "You grounded the ecosystem — everyone passed through you",
+        },
+        connector: {
+          name: "Connector",
+          logic: "Top 3 by cross-sector %",
+          description: "You linked what should not yet be linked",
+        },
+        explorer: {
+          name: "Explorer",
+          logic: "Most sectors reached out of 6",
+          description: "You went where others did not — and brought people back",
+        },
+        catalyst: {
+          name: "Catalyst",
+          logic: "Most connections in first hour",
+          description: "You accelerated what was already in motion",
+        },
+        builder: {
+          name: "Builder",
+          logic: "The bridge — consistent",
+          description: "You showed up consistently and made it real",
+        },
+      },
+    },
+    csvUpload: {
+  title: "CSV Upload",
+  description: "Upload a CSV with columns matching your Supabase table.",
+  currentLanguageRoute: "Current language route",
+  downloadSampleCsv: "Download sample CSV",
+  clickToUpload: "Click to upload CSV",
+  onlyCsvSupported: "Only .csv files are supported",
+
+  readingCsv: "Reading CSV...",
+  csvEmpty: "CSV is empty.",
+  missingColumns: "Missing columns",
+  uploadingToSupabase: "Uploading to Supabase...",
+  uploadFailed: "Upload failed",
+  uploadFailedGeneric: "Upload failed, something went wrong while uploading.",
+  parseFailed: "Failed to parse CSV.",
+  uploadedRows: "Uploaded {{count}} rows successfully.",
+
+  dataLoaded: "Data loaded",
+  rowsReady: "{{count}} rows are ready for badge generation.",
+  generateBadgeZip: "Generate Badge ZIP",
+  generating: "Generating...",
+  noDataLoaded: "No data loaded.",
+  generatingBadges: "Generating badges...",
+  generatedProgress: "Generated {{current}} of {{total}}",
+  creatingZip: "Creating ZIP...",
+  done: "Done.",
+  failedZip: "Failed to generate badges ZIP.",
+},
+homePage: {
+  title: "Building Ecosystems",
+  subtitle: "Choose where you want to go",
+  screen: "Screen",
+  leaderboard: "Leaderboard",
+  admin: "Admin",
+},
+identityConfirm: {
+  loadingProfile: "Loading profile...",
+  profileNotFound: "Profile Not Found",
+  profileNotFoundDescription: "We could not find a profile for this QR code.",
+  chooseAnotherProfile: "Choose another profile",
+
+  welcomeTitle: "Welcome, {{name}}!",
+  welcomeDescription:
+    "You’re all set. Start making connections by scanning others’ QR codes.",
+
+  confirmTitle: "Is this you?",
+  confirmDescription: "Your phone will remember you all day.",
+
+  sector: "Sector",
+  country: "Country",
+
+  no: "No",
+  yesThisIsMe: "Yes, this is me",
+},
+identitySelect: {
+  title: "Who are you?",
+  description: "Scan your QR code or type your name to find your profile.",
+  scanQrCode: "Scan QR Code",
+  or: "or",
+  typeYourName: "Type your name",
+  noMatchingAttendees: "No matching attendees found.",
+  continue: "Continue",
+},
+recordsPage: {
+  title: "Records",
+  showingRecords: "Showing {{filtered}} of {{total}} records",
+
+  searchPlaceholder: "Search records...",
+
+  preparing: "Preparing...",
+  downloadQrForAll: "Download QR for All",
+
+  deleting: "Deleting...",
+  deleteAllConnections: "Delete All Connections",
+  deleteAll: "Delete All",
+
+  loadingRecords: "Loading records...",
+  noRecordsFound: "No records found.",
+
+  table: {
+    name: "Name",
+    company: "Company",
+    title: "Title",
+    sector: "Sector",
+    country: "Country",
+    linkedin: "LinkedIn",
+    photoUrl: "photo_url",
+    actions: "Actions",
+  },
+
+  selectSector: "Select sector",
+
+  linkedinPlaceholder: "https://linkedin.com/in/...",
+  photoUrlPlaceholder: "https://media.licdn.com/dms/...",
+
+  view: "View",
+  saving: "Saving...",
+  save: "Save",
+  cancel: "Cancel",
+  edit: "Edit",
+  qr: "QR",
+  delete: "Delete",
+},
+singleUpload: {
+  title: "Single Upload",
+  description: "Add one attendee manually, then download their QR image.",
+
+  fields: {
+    name: "Name",
+    company: "Company",
+    title: "Title",
+    sector: "Sector",
+    country: "Country",
+    linkedin_url: "LinkedIn URL",
+    photo_url: "Photo URL",
+  },
+
+  placeholders: {
+    name: "Name",
+    company: "Company",
+    title: "Title",
+    sector: "Select sector",
+    country: "Start typing country name",
+    linkedin_url: "LinkedIn URL",
+    photo_url: "Photo URL",
+  },
+
+  selectSector: "Select sector",
+
+  entryUploaded: "Entry uploaded successfully. You can now download the QR code.",
+
+  uploading: "Uploading...",
+  uploadEntry: "Upload Entry",
+
+  generating: "Generating...",
+  downloadQr: "Download QR",
+},
+adminHeader: {
+  expand: "Expand",
+  collapse: "Collapse",
+
+  brand: "Building Ecosystems",
+  title: "Admin Panel",
+  description: "Manage attendees, uploads, and QR records",
+
+  upload: "Upload",
+  records: "Records",
+  leaderboard: "Leaderboard",
+  liveScreen: "Live Screen",
+},
+adminGate: {
+  adminPasswordNotConfigured: "Admin password is not configured.",
+  incorrectPassword: "Incorrect password.",
+  title: "Admin Access",
+  description: "Enter the admin password to continue.",
+  passwordPlaceholder: "Password",
+  unlockAdmin: "Unlock Admin",
+},
+edgeScreen: {
+  states: {
+    self: {
+      icon: "👋",
+      title: "That's you!",
+      body: "This is your own profile.",
+      sub: "Point your camera at someone else's badge to connect.",
+    },
+    duplicate: {
+      icon: "✅",
+      title: "Already connected",
+      body: "You're already connected with {{name}}.",
+      sub: "Your connection was logged earlier today.",
+      ctaLabel: "View LinkedIn Profile",
+    },
+    notFound: {
+      icon: "❓",
+      title: "Profile not found",
+      body: "This badge isn't registered in the system.",
+      sub: "Ask a staff member at the registration desk for help.",
+    },
+  },
+
+  notActivated: {
+    title: "Welcome!",
+    description:
+      "To connect with others, we need to know who you are. Select your name below — this only takes a moment.",
+    nameLabel: "Your name",
+    chooseName: "— Choose your name —",
+    identitySaved:
+      "Your identity is saved to this browser. Next time you scan a badge, connecting is one tap.",
+    continue: "Continue →",
+    selectNameToContinue: "Select your name to continue",
+  },
+
+  back: "← Back",
+},
+profileScreen: {
+  connecting: "Connecting...",
+  connectWith: "Connect with {{name}}",
+},
+  },
+
+  nl: {
+    label: "Nederlands",
+    shortLabel: "NL",
+    leaderboard: {
+      brand: "Building Ecosystems",
+      liveFeed: "Live connectiefeed",
+      title: "Top Connectors",
+      loading: "Live leaderboard laden...",
+      loadError: "Kon het live leaderboard niet laden.",
+      unknownAttendee: "Onbekende deelnemer",
+      emptyRankLine1: "Nog niet genoeg connecties,",
+      emptyRankLine2: "blijf verbinden",
+      crossSector: "Cross-sector",
+      connectionTarget: "Connectiedoel",
+      explorerMaxSuffix: "/5",
+      ranks: ["1E", "2E", "3E"],
+      roles: {
+        anchor: {
+          name: "Anker",
+          logic: "Top 15% op basis van totale connecties",
+          description: "Jij gaf het ecosysteem houvast — iedereen kwam via jou samen",
+        },
+        connector: {
+          name: "Connector",
+          logic: "Top 3 op basis van cross-sector %",
+          description: "Jij verbond wat nog niet vanzelf verbonden was",
+        },
+        explorer: {
+          name: "Verkenner",
+          logic: "Meeste sectoren bereikt van de 5",
+          description: "Jij ging waar anderen nog niet gingen — en nam mensen mee terug",
+        },
+        catalyst: {
+          name: "Katalysator",
+          logic: "Meeste connecties in het eerste uur",
+          description: "Jij versnelde wat al in beweging was",
+        },
+        builder: {
+          name: "Bouwer",
+          logic: "De brug — consistent",
+          description: "Jij bleef zichtbaar en maakte het echt",
+        },
+      },
+    },
+    csvUpload: {
+  title: "CSV-upload",
+  description: "Upload een CSV-bestand met kolommen die overeenkomen met je Supabase-tabel.",
+  currentLanguageRoute: "Huidige taalroute",
+  downloadSampleCsv: "Voorbeeld-CSV downloaden",
+  clickToUpload: "Klik om CSV te uploaden",
+  onlyCsvSupported: "Alleen .csv-bestanden worden ondersteund",
+
+  readingCsv: "CSV lezen...",
+  csvEmpty: "CSV is leeg.",
+  missingColumns: "Ontbrekende kolommen",
+  uploadingToSupabase: "Uploaden naar Supabase...",
+  uploadFailed: "Upload mislukt",
+  uploadFailedGeneric: "Upload mislukt, er is iets misgegaan tijdens het uploaden.",
+  parseFailed: "CSV verwerken mislukt.",
+  uploadedRows: "{{count}} rijen succesvol geüpload.",
+
+  dataLoaded: "Data geladen",
+  rowsReady: "{{count}} rijen zijn klaar voor badge-generatie.",
+  generateBadgeZip: "Badge-ZIP genereren",
+  generating: "Genereren...",
+  noDataLoaded: "Geen data geladen.",
+  generatingBadges: "Badges genereren...",
+  generatedProgress: "{{current}} van {{total}} gegenereerd",
+  creatingZip: "ZIP maken...",
+  done: "Klaar.",
+  failedZip: "Badge-ZIP genereren mislukt.",
+},
+homePage: {
+  title: "Building Ecosystems",
+  subtitle: "Kies waar je naartoe wilt",
+  screen: "Scherm",
+  leaderboard: "Leaderboard",
+  admin: "Admin",
+},
+identityConfirm: {
+  loadingProfile: "Profiel laden...",
+  profileNotFound: "Profiel niet gevonden",
+  profileNotFoundDescription:
+    "We konden geen profiel vinden voor deze QR-code.",
+  chooseAnotherProfile: "Kies een ander profiel",
+
+  welcomeTitle: "Welkom, {{name}}!",
+  welcomeDescription:
+    "Je bent helemaal klaar. Begin met connecties maken door QR-codes van anderen te scannen.",
+
+  confirmTitle: "Ben jij dit?",
+  confirmDescription: "Je telefoon onthoudt je de hele dag.",
+
+  sector: "Sector",
+  country: "Land",
+
+  no: "Nee",
+  yesThisIsMe: "Ja, dit ben ik",
+},
+identitySelect: {
+  title: "Wie ben jij?",
+  description: "Scan je QR-code of typ je naam om je profiel te vinden.",
+  scanQrCode: "QR-code scannen",
+  or: "of",
+  typeYourName: "Typ je naam",
+  noMatchingAttendees: "Geen overeenkomende deelnemers gevonden.",
+  continue: "Doorgaan",
+},
+recordsPage: {
+  title: "Records",
+  showingRecords: "{{filtered}} van {{total}} records weergegeven",
+
+  searchPlaceholder: "Records zoeken...",
+
+  preparing: "Voorbereiden...",
+  downloadQrForAll: "QR voor iedereen downloaden",
+
+  deleting: "Verwijderen...",
+  deleteAllConnections: "Alle connecties verwijderen",
+  deleteAll: "Alles verwijderen",
+
+  loadingRecords: "Records laden...",
+  noRecordsFound: "Geen records gevonden.",
+
+  table: {
+    name: "Naam",
+    company: "Bedrijf",
+    title: "Functie",
+    sector: "Sector",
+    country: "Land",
+    linkedin: "LinkedIn",
+    photoUrl: "photo_url",
+    actions: "Acties",
+  },
+
+  selectSector: "Selecteer sector",
+
+  linkedinPlaceholder: "https://linkedin.com/in/...",
+  photoUrlPlaceholder: "https://media.licdn.com/dms/...",
+
+  view: "Bekijken",
+  saving: "Opslaan...",
+  save: "Opslaan",
+  cancel: "Annuleren",
+  edit: "Bewerken",
+  qr: "QR",
+  delete: "Verwijderen",
+},
+singleUpload: {
+  title: "Single Upload",
+  description: "Voeg handmatig één deelnemer toe en download daarna de QR-afbeelding.",
+
+  fields: {
+    name: "Naam",
+    company: "Bedrijf",
+    title: "Functie",
+    sector: "Sector",
+    country: "Land",
+    linkedin_url: "LinkedIn URL",
+    photo_url: "Foto-URL",
+  },
+
+  placeholders: {
+    name: "Naam",
+    company: "Bedrijf",
+    title: "Functie",
+    sector: "Selecteer sector",
+    country: "Begin met het typen van een land",
+    linkedin_url: "LinkedIn URL",
+    photo_url: "Foto-URL",
+  },
+
+  selectSector: "Selecteer sector",
+
+  entryUploaded: "Invoer succesvol geüpload. Je kunt nu de QR-code downloaden.",
+
+  uploading: "Uploaden...",
+  uploadEntry: "Invoer uploaden",
+
+  generating: "Genereren...",
+  downloadQr: "QR downloaden",
+},
+adminHeader: {
+  expand: "Uitklappen",
+  collapse: "Inklappen",
+
+  brand: "Building Ecosystems",
+  title: "Adminpaneel",
+  description: "Beheer deelnemers, uploads en QR-records",
+
+  upload: "Uploaden",
+  records: "Records",
+  leaderboard: "Leaderboard",
+  liveScreen: "Live scherm",
+},
+adminGate: {
+  adminPasswordNotConfigured: "Adminwachtwoord is niet geconfigureerd.",
+  incorrectPassword: "Onjuist wachtwoord.",
+  title: "Admin toegang",
+  description: "Voer het adminwachtwoord in om door te gaan.",
+  passwordPlaceholder: "Wachtwoord",
+  unlockAdmin: "Admin ontgrendelen",
+},
+edgeScreen: {
+  states: {
+    self: {
+      icon: "👋",
+      title: "Dat ben jij!",
+      body: "Dit is je eigen profiel.",
+      sub: "Richt je camera op de badge van iemand anders om te verbinden.",
+    },
+    duplicate: {
+      icon: "✅",
+      title: "Al verbonden",
+      body: "Je bent al verbonden met {{name}}.",
+      sub: "Je connectie is eerder vandaag opgeslagen.",
+      ctaLabel: "LinkedIn-profiel bekijken",
+    },
+    notFound: {
+      icon: "❓",
+      title: "Profiel niet gevonden",
+      body: "Deze badge is niet geregistreerd in het systeem.",
+      sub: "Vraag een medewerker bij de registratiebalie om hulp.",
+    },
+  },
+
+  notActivated: {
+    title: "Welkom!",
+    description:
+      "Om met anderen te verbinden, moeten we weten wie je bent. Selecteer hieronder je naam — dit duurt maar even.",
+    nameLabel: "Je naam",
+    chooseName: "— Kies je naam —",
+    identitySaved:
+      "Je identiteit wordt opgeslagen in deze browser. De volgende keer dat je een badge scant, kun je met één tik verbinden.",
+    continue: "Doorgaan →",
+    selectNameToContinue: "Selecteer je naam om door te gaan",
+  },
+
+  back: "← Terug",
+},
+profileScreen: {
+  connecting: "Verbinden...",
+  connectWith: "Verbinden met {{name}}",
+},
+  },
+};
+
+export function normalizeLanguage(language) {
+  return SUPPORTED_LANGUAGES.includes(language) ? language : DEFAULT_LANGUAGE;
+}
+
+export function getLanguageFromPath(pathname = window.location.pathname) {
+  const langFromUrl = String(pathname).split("/").filter(Boolean)[0];
+  return normalizeLanguage(langFromUrl);
+}
+
+export function getTranslations(language) {
+  return LANGUAGE_CONFIG[normalizeLanguage(language)];
+}
 export const sectorOptions = [
   "Tech",
   "Consultancy",
@@ -17,6 +525,67 @@ export const sectorOptions = [
   "Public",
   "Industry",
 ];
+
+export const sectorOptionsNl = ["Consultancy",
+"Defensie",
+"Bedrijven",
+"Kennisinstellingen",
+"Overheid"]
+
+export const SECTOR_CONFIG = {
+  tech: { color: "#378ADD", light: "#EBF4FF" },
+  consultancy: { color: "#7F77DD", light: "#EEEDFA" },
+  health: { color: "#1D9E75", light: "#E5F5EF" },
+  energy: { color: "#EF9F27", light: "#FDF4E7" },
+  "public": { color: "#D85A30", light: "#FCEEE9" },
+  industry: { color: "#7A7A78", light: "#F2F2F1" },
+};
+
+
+export const DEFAULT_SECTOR_COLORS = {
+  tech: "#378ADD",
+  consultancy: "#7F77DD",
+  health: "#1D9E75",
+  energy: "#EF9F27",
+  public: "#D85A30",
+  industry: "#888780",
+};
+
+export const SECTOR_CONFIG_NL = {
+  consultancy: {
+    label: "Consultancy",
+    color: "#7F77DD",
+    light: "#EEEDFA",
+  },
+  defensie: {
+    label: "Defensie",
+    color: "#378ADD",
+    light: "#EBF4FF",
+  },
+  bedrijven: {
+    label: "Bedrijven",
+    color: "#1D9E75",
+    light: "#E5F5EF",
+  },
+  kennisinstellingen: {
+    label: "Kennisinstellingen",
+    color: "#D85A30",
+    light: "#FCEEE9",
+  },
+  overheid: {
+    label: "Overheid",
+    color: "#7A7A78",
+    light: "#F2F2F1",
+  },
+};
+
+export const DEFAULT_SECTOR_COLORS_NL = {
+  consultancy: "#7F77DD",
+  defensie: "#378ADD",
+  bedrijven: "#1D9E75",
+  kennisinstellingen: "#D85A30",
+  overheid: "#888780",
+};
 
 export const countryOptions = [
   { code: "nl", name: "Netherlands" },
@@ -471,23 +1040,7 @@ export const QR_BASE_URL = "https://buildingecosystems.netlify.app/connect/"
 
 export const TABLE_NAME = "attendees";
 
-export const SECTOR_CONFIG = {
-  tech: { color: "#378ADD", light: "#EBF4FF" },
-  consultancy: { color: "#7F77DD", light: "#EEEDFA" },
-  health: { color: "#1D9E75", light: "#E5F5EF" },
-  energy: { color: "#EF9F27", light: "#FDF4E7" },
-  "public": { color: "#D85A30", light: "#FCEEE9" },
-  industry: { color: "#7A7A78", light: "#F2F2F1" },
-};
-
-export const DEFAULT_SECTOR_COLORS = {
-  tech: "#378ADD",
-  consultancy: "#7F77DD",
-  health: "#1D9E75",
-  energy: "#EF9F27",
-  public: "#D85A30",
-  industry: "#888780",
-};
 
 
 export const LOGO_URL = "/logo.png";
+export const LOGO_NEW_URL = "/logonew.png"

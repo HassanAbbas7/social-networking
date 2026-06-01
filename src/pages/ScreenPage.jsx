@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import NetworkGraph from "../components/graph/NetworkGraph";
-import { TABLE_NAME, DEFAULT_SECTOR_COLORS } from "../data/config";
+import {
+  TABLE_NAME,
+  DEFAULT_SECTOR_COLORS_NL,
+  SECTOR_CONFIG_NL,
+} from "../data/config";
 import { computeRoleStats, mergeStatsWithAttendees } from "../utils/roleUtils";
 
 const supabase = createClient(
@@ -11,7 +15,8 @@ const supabase = createClient(
 
 const CONNECTIONS_TABLE = "connections";
 
-const SECTOR_COLORS = DEFAULT_SECTOR_COLORS;
+const SECTOR_COLORS = DEFAULT_SECTOR_COLORS_NL;
+const SECTOR_CONFIG = SECTOR_CONFIG_NL;
 
 const ROLE_COLORS = {
   Anchor: "#EF9F27",
@@ -20,6 +25,14 @@ const ROLE_COLORS = {
   Catalyst: "#D85A30",
   Builder: "#378ADD",
 };
+
+const SECTOR_LEGEND_ITEMS = Object.entries(SECTOR_CONFIG).map(
+  ([key, config]) => ({
+    key,
+    label: config.label,
+    color: config.color,
+  })
+);
 
 function ScreenPage() {
   const [attendees, setAttendees] = useState([]);
@@ -30,8 +43,6 @@ function ScreenPage() {
   const [revealRoles, setRevealRoles] = useState(false);
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [isGraphFullscreen, setIsGraphFullscreen] = useState(false);
-
-  
   const [computedRoleById, setComputedRoleById] = useState(null);
 
   useEffect(() => {
@@ -55,7 +66,10 @@ function ScreenPage() {
       if (!isMounted) return;
 
       if (attendeesError || connectionsError) {
-        console.error("Error loading screen data:", attendeesError || connectionsError);
+        console.error(
+          "Error loading screen data:",
+          attendeesError || connectionsError
+        );
         setErrorMessage("Could not load the live network.");
         setLoading(false);
         return;
@@ -67,7 +81,10 @@ function ScreenPage() {
     }
 
     loadGraphData();
-    return () => { isMounted = false; };
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -78,8 +95,12 @@ function ScreenPage() {
         { event: "INSERT", schema: "public", table: CONNECTIONS_TABLE },
         (payload) => {
           const newConnection = payload.new;
+
           setConnections((current) => {
-            if (current.some((c) => c.id === newConnection.id)) return current;
+            if (current.some((connection) => connection.id === newConnection.id)) {
+              return current;
+            }
+
             return [...current, newConnection];
           });
         }
@@ -89,41 +110,44 @@ function ScreenPage() {
         { event: "DELETE", schema: "public", table: CONNECTIONS_TABLE },
         (payload) => {
           setConnections((current) =>
-            current.filter((c) => c.id !== payload.old.id)
+            current.filter((connection) => connection.id !== payload.old.id)
           );
         }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const attendeeById = useMemo(
-    () => new Map(attendees.map((a) => [a.id, a])),
-    [attendees]
-  );
+  const attendeeById = useMemo(() => {
+    return new Map(attendees.map((attendee) => [attendee.id, attendee]));
+  }, [attendees]);
 
   const visibleAttendees = useMemo(() => {
     const connectedIds = new Set();
-    connections.forEach((c) => {
-      if (c.scanner_id) connectedIds.add(c.scanner_id);
-      if (c.scanned_id) connectedIds.add(c.scanned_id);
+
+    connections.forEach((connection) => {
+      if (connection.scanner_id) connectedIds.add(connection.scanner_id);
+      if (connection.scanned_id) connectedIds.add(connection.scanned_id);
     });
-    return attendees.filter((a) => connectedIds.has(a.id));
+
+    return attendees.filter((attendee) => connectedIds.has(attendee.id));
   }, [attendees, connections]);
 
   const visibleConnections = useMemo(() => {
-    const visibleIds = new Set(visibleAttendees.map((a) => a.id));
+    const visibleIds = new Set(
+      visibleAttendees.map((attendee) => attendee.id)
+    );
+
     return connections.filter(
-      (c) => visibleIds.has(c.scanner_id) && visibleIds.has(c.scanned_id)
+      (connection) =>
+        visibleIds.has(connection.scanner_id) &&
+        visibleIds.has(connection.scanned_id)
     );
   }, [connections, visibleAttendees]);
 
-  /**
-   * On reveal: fetch the freshest snapshot from the DB, then call
-   * computeRoles from roleUtils — the exact same function Leaderboard uses,
-   * guaranteeing identical role assignments.
-   */
   async function handleRevealRoles() {
     if (revealRoles) {
       setRevealRoles(false);
@@ -149,7 +173,8 @@ function ScreenPage() {
 
     const merged = mergeStatsWithAttendees(statsData || [], attendeesData || []);
     const withRoles = computeRoleStats(merged);
-    const roleMap = new Map(withRoles.map((s) => [s.id, s.role]));
+    const roleMap = new Map(withRoles.map((stat) => [stat.id, stat.role]));
+
     setComputedRoleById(roleMap);
     setRevealRoles(true);
   }
@@ -165,22 +190,32 @@ function ScreenPage() {
   }, [visibleAttendees, revealRoles, computedRoleById]);
 
   const crossSectorCount = useMemo(() => {
-    return visibleConnections.filter((c) => {
-      const scanner = attendeeById.get(c.scanner_id);
-      const scanned = attendeeById.get(c.scanned_id);
+    return visibleConnections.filter((connection) => {
+      const scanner = attendeeById.get(connection.scanner_id);
+      const scanned = attendeeById.get(connection.scanned_id);
+
       return scanner && scanned && scanner.sector !== scanned.sector;
     }).length;
   }, [visibleConnections, attendeeById]);
 
   const clustersFormedCount = useMemo(() => {
-    const visibleIds = new Set(visibleAttendees.map((a) => a.id));
+    const visibleIds = new Set(
+      visibleAttendees.map((attendee) => attendee.id)
+    );
+
     const adjacency = new Map();
     visibleIds.forEach((id) => adjacency.set(id, []));
 
-    visibleConnections.forEach((c) => {
-      if (!visibleIds.has(c.scanner_id) || !visibleIds.has(c.scanned_id)) return;
-      adjacency.get(c.scanner_id).push(c.scanned_id);
-      adjacency.get(c.scanned_id).push(c.scanner_id);
+    visibleConnections.forEach((connection) => {
+      if (
+        !visibleIds.has(connection.scanner_id) ||
+        !visibleIds.has(connection.scanned_id)
+      ) {
+        return;
+      }
+
+      adjacency.get(connection.scanner_id).push(connection.scanned_id);
+      adjacency.get(connection.scanned_id).push(connection.scanner_id);
     });
 
     const visited = new Set();
@@ -188,11 +223,15 @@ function ScreenPage() {
 
     visibleIds.forEach((id) => {
       if (visited.has(id)) return;
+
       clusters += 1;
+
       const stack = [id];
       visited.add(id);
+
       while (stack.length > 0) {
         const current = stack.pop();
+
         adjacency.get(current).forEach((neighbor) => {
           if (!visited.has(neighbor)) {
             visited.add(neighbor);
@@ -224,7 +263,6 @@ function ScreenPage() {
   }
 
   return (
-    // <main className="min-h-screen bg-[#f7f7f5] text-[#1f1f1d] flex flex-col">
     <main className="min-h-screen bg-[#FAFAF8] text-[#1A1917] flex flex-col">
       <section
         className={
@@ -247,6 +285,7 @@ function ScreenPage() {
           revealRoles={revealRoles}
           layoutVersion={layoutVersion}
           sectorColors={SECTOR_COLORS}
+          sectorConfig={SECTOR_CONFIG}
           roleColors={ROLE_COLORS}
         />
 
@@ -256,11 +295,11 @@ function ScreenPage() {
               ? Object.entries(ROLE_COLORS).map(([role, color]) => (
                   <LegendDot key={role} color={color} label={role} />
                 ))
-              : Object.entries(SECTOR_COLORS).map(([key, color]) => (
+              : SECTOR_LEGEND_ITEMS.map((sector) => (
                   <LegendDot
-                    key={key}
-                    color={color}
-                    label={key.replace("_", " ")}
+                    key={sector.key}
+                    color={sector.color}
+                    label={sector.label}
                   />
                 ))}
           </div>
@@ -271,26 +310,6 @@ function ScreenPage() {
         <footer className="px-6 pb-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex gap-2">
-              {/* <button
-                className="rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
-                onClick={() => setShowNames((v) => !v)}
-              >
-                Toggle Names
-              </button>
-
-              <button
-                className="rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
-                onClick={handleRevealRoles}
-              >
-                {revealRoles ? "Show sectors ↗" : "Reveal roles ↗"}
-              </button>
-
-              <button
-                className="rounded-lg border border-[#d8d8d2] bg-white px-4 py-2 text-sm shadow-sm"
-                onClick={() => setLayoutVersion((v) => v + 1)}
-              >
-                Reset
-              </button> */}
               <button
                 className="rounded-xl border border-black/[0.06] bg-white/90 backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#3A3630] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-white transition-colors"
                 onClick={() => setShowNames((value) => !value)}
@@ -335,12 +354,13 @@ function ScreenPage() {
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-4 text-xs text-[#4f4f4a]">
-                <LegendDot color={SECTOR_COLORS.tech} label="Tech" />
-                <LegendDot color={SECTOR_COLORS.consultancy} label="Consultancy" />
-                <LegendDot color={SECTOR_COLORS.health} label="Health" />
-                <LegendDot color={SECTOR_COLORS.energy} label="Energy" />
-                <LegendDot color={SECTOR_COLORS.public} label="Public" />
-                <LegendDot color={SECTOR_COLORS.industry} label="Industry" />
+                {SECTOR_LEGEND_ITEMS.map((sector) => (
+                  <LegendDot
+                    key={sector.key}
+                    color={sector.color}
+                    label={sector.label}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -350,20 +370,15 @@ function ScreenPage() {
   );
 }
 
-// old stat component
-// function Stat({ label, value }) {
-//   return (
-//     <div className="rounded-xl bg-[#efeee9] px-4 py-3 text-center">
-//       <div className="text-xl font-bold tabular-nums">{value}</div>
-//       <div className="text-xs text-[#3f3f3a]">{label}</div>
-//     </div>
-//   );
-// }
 function Stat({ label, value }) {
   return (
     <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-black/[0.04] px-5 py-4 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <div className="text-2xl font-bold tabular-nums text-[#1A1917]">{value}</div>
-      <div className="text-[11px] font-medium text-[#9A958D] uppercase tracking-wider mt-1">{label}</div>
+      <div className="text-2xl font-bold tabular-nums text-[#1A1917]">
+        {value}
+      </div>
+      <div className="text-[11px] font-medium text-[#9A958D] uppercase tracking-wider mt-1">
+        {label}
+      </div>
     </div>
   );
 }

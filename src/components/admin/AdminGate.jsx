@@ -1,9 +1,16 @@
 // src/components/admin/AdminGate.jsx
 import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { getTranslations, normalizeLanguage } from "../../data/config";
 
 const ADMIN_SESSION_KEY = "admin_authenticated";
 
 export default function AdminGate({ children }) {
+  const { lang } = useParams();
+
+  const language = normalizeLanguage(lang);
+  const t = getTranslations(language).adminGate;
+
   const [isAuthenticated, setIsAuthenticated] = useState(
     sessionStorage.getItem(ADMIN_SESSION_KEY) === "true"
   );
@@ -17,7 +24,7 @@ export default function AdminGate({ children }) {
     const adminPassword = import.meta.env["VITE_ADMIN_PASSWORD"];
 
     if (!adminPassword) {
-      setError("Admin password is not configured.");
+      setError(t.adminPasswordNotConfigured);
       return;
     }
 
@@ -28,7 +35,7 @@ export default function AdminGate({ children }) {
       return;
     }
 
-    setError("Incorrect password.");
+    setError(t.incorrectPassword);
   }
 
   if (isAuthenticated) {
@@ -42,18 +49,18 @@ export default function AdminGate({ children }) {
         className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
       >
         <h1 className="text-xl font-semibold text-gray-900">
-          Admin Access
+          {t.title}
         </h1>
 
         <p className="mt-2 text-sm text-gray-500">
-          Enter the admin password to continue.
+          {t.description}
         </p>
 
         <input
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="Password"
+          placeholder={t.passwordPlaceholder}
           className="mt-5 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-gray-900"
         />
 
@@ -67,7 +74,7 @@ export default function AdminGate({ children }) {
           type="submit"
           className="mt-5 w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700"
         >
-          Unlock Admin
+          {t.unlockAdmin}
         </button>
       </form>
     </div>

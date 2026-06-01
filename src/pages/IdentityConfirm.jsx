@@ -1,13 +1,30 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
-import { TABLE_NAME } from "../data/config";
+import {
+  TABLE_NAME,
+  getTranslations,
+  normalizeLanguage,
+} from "../data/config";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 );
 
+function replaceVars(template, values = {}) {
+  return String(template || "").replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    return values[key] ?? "";
+  });
+}
+
 export default function IdentityConfirm({ slug }) {
+  const navigate = useNavigate();
+  const { lang } = useParams();
+
+  const language = normalizeLanguage(lang);
+  const t = getTranslations(language).identityConfirm;
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirmed, setConfirmed] = useState(false);
@@ -34,21 +51,21 @@ export default function IdentityConfirm({ slug }) {
   }, [slug]);
 
   const handleYes = async () => {
-  if (!profile) return;
+    if (!profile) return;
 
-  const { error } = await supabase
-    .from("attendance")
-    .insert({ id: profile.id });
+    const { error } = await supabase
+      .from("attendance")
+      .insert({ id: profile.id });
 
-  if (error) {
-    console.error("Failed to record attendance:", error);
-  }
+    if (error) {
+      console.error("Failed to record attendance:", error);
+    }
 
-  localStorage.setItem("profile", JSON.stringify(profile));
-};
+    localStorage.setItem("profile", JSON.stringify(profile));
+  };
 
   const handleNo = () => {
-    window.location.href = "/identity";
+    navigate(`/${language}/identity`);
   };
 
   const pageClass =
@@ -61,7 +78,7 @@ export default function IdentityConfirm({ slug }) {
     return (
       <div className={pageClass}>
         <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          Loading profile...
+          {t.loadingProfile}
         </p>
       </div>
     );
@@ -72,11 +89,11 @@ export default function IdentityConfirm({ slug }) {
       <div className={pageClass}>
         <div className={`${cardClass} text-center`}>
           <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-            Profile Not Found
+            {t.profileNotFound}
           </h1>
 
           <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-            We could not find a profile for this QR code.
+            {t.profileNotFoundDescription}
           </p>
 
           <button
@@ -84,7 +101,7 @@ export default function IdentityConfirm({ slug }) {
             onClick={handleNo}
             className="mt-6 w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
           >
-            Choose another profile
+            {t.chooseAnotherProfile}
           </button>
         </div>
       </div>
@@ -96,11 +113,13 @@ export default function IdentityConfirm({ slug }) {
       <div className={pageClass}>
         <div className={`${cardClass} text-center`}>
           <h1 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-            Welcome, {profile.name}!
+            {replaceVars(t.welcomeTitle, {
+              name: profile.name,
+            })}
           </h1>
 
           <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-            You’re all set. Start making connections by scanning others’ QR codes.
+            {t.welcomeDescription}
           </p>
         </div>
       </div>
@@ -112,11 +131,11 @@ export default function IdentityConfirm({ slug }) {
       <div className={cardClass}>
         <div className="text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
-            Is this you?
+            {t.confirmTitle}
           </h1>
 
           <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-            Your phone will remember you all day.
+            {t.confirmDescription}
           </p>
         </div>
 
@@ -159,8 +178,9 @@ export default function IdentityConfirm({ slug }) {
           {profile.sector && (
             <div className="flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 dark:bg-neutral-800">
               <span className="text-neutral-500 dark:text-neutral-400">
-                Sector
+                {t.sector}
               </span>
+
               <span className="font-medium text-neutral-800 dark:text-neutral-200">
                 {profile.sector}
               </span>
@@ -170,8 +190,9 @@ export default function IdentityConfirm({ slug }) {
           {profile.country && (
             <div className="flex items-center justify-between rounded-xl bg-neutral-50 px-4 py-3 dark:bg-neutral-800">
               <span className="text-neutral-500 dark:text-neutral-400">
-                Country
+                {t.country}
               </span>
+
               <span className="font-medium text-neutral-800 dark:text-neutral-200">
                 {profile.country}
               </span>
@@ -193,7 +214,7 @@ export default function IdentityConfirm({ slug }) {
             onClick={handleNo}
             className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-800 transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
           >
-            No
+            {t.no}
           </button>
 
           <button
@@ -204,7 +225,7 @@ export default function IdentityConfirm({ slug }) {
             }}
             className="rounded-xl bg-neutral-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
           >
-            Yes, this is me
+            {t.yesThisIsMe}
           </button>
         </div>
       </div>

@@ -385,7 +385,7 @@ if __name__ == "__main__":
     # exit(0)
 
     attendees = db.list_attendees()
-    for _ in range(15):
+    for _ in range(150):
 
         # if len(attendees) < 2:
         #     break

@@ -1,8 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { Html5Qrcode } from "html5-qrcode";
+import {
+  TABLE_NAME,
+  getTranslations,
+  normalizeLanguage,
+} from "../data/config";
 
 export default function IdentitySelect() {
+  const navigate = useNavigate();
+  const { lang } = useParams();
+
+  const language = normalizeLanguage(lang);
+  const t = getTranslations(language).identitySelect;
+
   const supabase = createClient(
     import.meta.env.VITE_SUPABASE_URL,
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
@@ -14,14 +26,14 @@ export default function IdentitySelect() {
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
 
-
   const onSave = (profile) => {
     localStorage.setItem("profile", JSON.stringify(profile));
-  }
+  };
+
   useEffect(() => {
     async function fetchAttendees() {
       const { data, error } = await supabase
-        .from("attendees")
+        .from(TABLE_NAME)
         .select("id, slug, name, company, title, photo_url")
         .order("name", { ascending: true });
 
@@ -30,14 +42,14 @@ export default function IdentitySelect() {
     }
 
     fetchAttendees();
-  }, []);
+  }, [supabase]);
 
   const filteredAttendees = useMemo(() => {
     const term = search.toLowerCase().trim();
     if (!term) return attendees;
 
     return attendees.filter((attendee) =>
-      `${attendee.name} ${attendee.company} ${attendee.title}`
+      `${attendee.name || ""} ${attendee.company || ""} ${attendee.title || ""}`
         .toLowerCase()
         .includes(term)
     );
@@ -48,22 +60,9 @@ export default function IdentitySelect() {
   const handleContinue = () => {
     if (!selectedAttendee) return;
 
-    // const profileData = {
-    //   id: selectedAttendee.id,
-    //   slug: selectedAttendee.slug,
-    //   name: selectedAttendee.name,
-    //   company: selectedAttendee.company,
-    //   title: selectedAttendee.title,
-    //   photo_url: selectedAttendee.photo_url,
-    // };
-
-    // localStorage.setItem("profile", JSON.stringify(profileData));
-    // onSave(profileData);
-    // redirect
-    window.location.href = `/connect/${selectedAttendee.slug}`;
+    navigate(`/${language}/connect/${selectedAttendee.slug}`);
   };
 
-  // QR Scanner logic
   useEffect(() => {
     if (!scanning) return;
 
@@ -76,8 +75,18 @@ export default function IdentitySelect() {
         qr.stop().then(() => {
           setScanning(false);
 
-          // Redirect immediately
-          window.location.href = decodedText;
+          /**
+           * If the QR already contains a full URL, use it.
+           * If it contains only a slug, route it through the current language.
+           */
+          const scannedValue = String(decodedText || "").trim();
+
+          if (/^https?:\/\//i.test(scannedValue)) {
+            window.location.href = scannedValue;
+            return;
+          }
+
+          navigate(`/${language}/connect/${scannedValue}`);
         });
       },
       () => {}
@@ -86,7 +95,7 @@ export default function IdentitySelect() {
     return () => {
       qr.stop().catch(() => {});
     };
-  }, [scanning]);
+  }, [scanning, language, navigate]);
 
   return (
     <div className="min-h-screen bg-neutral-100 px-4 py-8 text-neutral-900">
@@ -94,10 +103,11 @@ export default function IdentitySelect() {
         <div className="w-full rounded-2xl bg-white p-6 shadow-sm ring-1 ring-neutral-200">
           <div className="mb-6">
             <h1 className="text-2xl font-semibold tracking-tight">
-              Who are you?
+              {t.title}
             </h1>
+
             <p className="mt-2 text-sm text-neutral-500">
-              Scan your QR code or type your name to find your profile.
+              {t.description}
             </p>
           </div>
 
@@ -107,7 +117,7 @@ export default function IdentitySelect() {
             className="mb-5 flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium transition hover:bg-neutral-50"
           >
             <span className="text-lg">▣</span>
-            Scan QR Code
+            {t.scanQrCode}
           </button>
 
           {scanning && (
@@ -121,16 +131,18 @@ export default function IdentitySelect() {
 
           <div className="mb-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-neutral-200" />
+
             <span className="text-xs uppercase tracking-wide text-neutral-400">
-              or
+              {t.or}
             </span>
+
             <div className="h-px flex-1 bg-neutral-200" />
           </div>
 
           <div className="space-y-3">
             <input
               type="text"
-              placeholder="Type your name"
+              placeholder={t.typeYourName}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -140,46 +152,50 @@ export default function IdentitySelect() {
               className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 disabled:bg-neutral-100"
             />
 
-            {!loading && search && filteredAttendees.length && !selectedAttendee > 0 && (
-              <div className="max-h-56 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
-                {filteredAttendees.map((attendee) => (
-                  <button
-                    key={attendee.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedId(attendee.id);
-                      setSearch(attendee.name);
-                    }}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition hover:bg-neutral-50"
-                  >
-                    <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-neutral-200 text-xs font-semibold">
-                      {attendee.photo_url ? (
-                        <img
-                          src={attendee.photo_url}
-                          alt={attendee.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        attendee.name?.charAt(0)
-                      )}
-                    </div>
+            {!loading &&
+              search &&
+              filteredAttendees.length > 0 &&
+              !selectedAttendee && (
+                <div className="max-h-56 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
+                  {filteredAttendees.map((attendee) => (
+                    <button
+                      key={attendee.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedId(attendee.id);
+                        setSearch(attendee.name);
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition hover:bg-neutral-50"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-neutral-200 text-xs font-semibold">
+                        {attendee.photo_url ? (
+                          <img
+                            src={attendee.photo_url}
+                            alt={attendee.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          attendee.name?.charAt(0)
+                        )}
+                      </div>
 
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {attendee.name}
-                      </p>
-                      <p className="truncate text-xs text-neutral-500">
-                        {attendee.title} · {attendee.company}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {attendee.name}
+                        </p>
+
+                        <p className="truncate text-xs text-neutral-500">
+                          {attendee.title} · {attendee.company}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
 
             {!loading && search && filteredAttendees.length === 0 && (
               <p className="text-sm text-neutral-500">
-                No matching attendees found.
+                {t.noMatchingAttendees}
               </p>
             )}
           </div>
@@ -202,6 +218,7 @@ export default function IdentitySelect() {
                 <p className="truncate text-sm font-medium">
                   {selectedAttendee.name}
                 </p>
+
                 <p className="truncate text-xs text-neutral-500">
                   {selectedAttendee.title} · {selectedAttendee.company}
                 </p>
@@ -215,7 +232,7 @@ export default function IdentitySelect() {
             disabled={!selectedAttendee}
             className="mt-6 w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
           >
-            Continue
+            {t.continue}
           </button>
         </div>
       </div>

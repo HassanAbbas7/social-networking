@@ -1,4 +1,4 @@
-import { QR_BASE_URL, SECTOR_CONFIG_NL, LOGO_URL, countryOptions, countryMap } from "../data/config";
+import { QR_BASE_URL, SECTOR_CONFIG, LOGO_URL, countryOptions, countryMap } from "../data/config";
 import QRCode from "qrcode";
 
 export async function createBadgePng(profile) {
@@ -22,19 +22,20 @@ export async function createBadgePng(profile) {
     ctx.imageSmoothingQuality = "high";
 
     const sector = normalizeSector(profile.sector);
-    const cfg = SECTOR_CONFIG_NL[sector] || SECTOR_CONFIG_NL.consultancy;
+    const cfg = SECTOR_CONFIG[sector] || SECTOR_CONFIG.industry;
 
     const attendee = normalizeProfile(profile);
 
     await loadFonts();
 
     function normalizeSector(value) {
-  const raw = String(value || "").trim().toLowerCase();
+      value = value.toLowerCase().trim(); 
+      const raw = String(value || "industry").trim();
 
-  if (!raw) return "consultancy";
+      if (raw.toLowerCase() === "public") return "public";
 
-  return SECTOR_CONFIG_NL[raw] ? raw : "consultancy";
-}
+      return SECTOR_CONFIG[raw] ? raw : "Industry";
+    }
 
     function normalizeProfile(value) {
       const fullName = String(value.name || "").trim();
@@ -269,12 +270,6 @@ export async function createBadgePng(profile) {
   let size = 74;
 
   ctx.save();
-
-// ctx.fillStyle = "rgba(9, 156, 248, 0.16)"; // blue with low opacity overlay
-ctx.fillRect(0, 0, W, H);
-ctx.restore();
-
-
   ctx.fillStyle = "#111111";
   ctx.textAlign = "left"; // ✅ change
   ctx.textBaseline = "alphabetic";
@@ -350,14 +345,14 @@ else {
     ctx.save();
     ctx.translate(STRIP / 2, H - 80);
     ctx.rotate(-Math.PI / 2);
-    drawText((cfg.label || sector), 0, 0, {
-  size: 8,
-  weight: 700,
-  color: "rgba(255,255,255,0.7)",
-  align: "center",
-  baseline: "middle",
-  letterSpacing: 1.4,
-});
+    drawText(sector, 0, 0, {
+      size: 8,
+      weight: 700,
+      color: "rgba(255,255,255,0.7)",
+      align: "center",
+      baseline: "middle",
+      letterSpacing: 1.4,
+    });
     ctx.restore();
 
     /*
@@ -391,7 +386,7 @@ else {
     const headerTop = 68;
     const headerBottom = 122;
 
-    drawText("IAMD Symposium", contentX, headerTop + 17, {
+    drawText("Building Ecosystems", contentX, headerTop + 17, {
       size: 20,
       weight: 500,
       color: "#161412",
@@ -399,7 +394,7 @@ else {
       maxWidth: contentW - 88,
     });
 
-    drawText("NETWERKEVENEMENT · 2026", contentX, headerTop + 37, {
+    drawText("NETWORKING EVENT · 2026", contentX, headerTop + 37, {
       size: 9,
       weight: 600,
       color: "#ACA79E",
@@ -407,61 +402,54 @@ else {
       letterSpacing: 1.4,
     });
 
-   const logo2Img = await loadImage("/logonl.png");
-const logoImg = await loadImage("/logo.svg");
+    const logo2Img = await loadImage("/logo2.png");
+    const logoImg = await loadImage(LOGO_URL);
 
-const logoMaxW = 68;
-const logoMaxH = 38;
-const logoGap = 6; // space between top and bottom logo
+    let currentRight = contentRight;
 
-let topLogoW = 0;
-let topLogoH = 0;
-let bottomLogoW = 0;
-let bottomLogoH = 0;
+    if (logoImg) {
+      const logoMaxW = 68;
+      const logoMaxH = 38;
 
-// TOP LOGO = logo2Img / logonl.png
-if (logo2Img) {
-  const ratio = Math.min(
-    logoMaxW / logo2Img.naturalWidth,
-    logoMaxH / logo2Img.naturalHeight
-  );
+      const ratio = Math.min(
+        logoMaxW / logoImg.naturalWidth,
+        logoMaxH / logoImg.naturalHeight
+      );
 
-  topLogoW = logo2Img.naturalWidth * ratio;
-  topLogoH = logo2Img.naturalHeight * ratio;
-}
+      const logoW = logoImg.naturalWidth * ratio;
+      const logoH = logoImg.naturalHeight * ratio;
 
-// BOTTOM LOGO = logoImg / logo.svg
-if (logoImg) {
-  const ratio2 = Math.min(
-    logoMaxW / logoImg.naturalWidth,
-    logoMaxH / logoImg.naturalHeight
-  );
+      ctx.drawImage(
+        logoImg,
+        currentRight - logoW,
+        headerTop,
+        logoW,
+        logoH
+      );
 
-  bottomLogoW = logoImg.naturalWidth * ratio2;
-  bottomLogoH = logoImg.naturalHeight * ratio2;
-}
+      currentRight -= (logoW + 2);
+    }
 
-const logoRightX = contentRight;
+    if (logo2Img) {
+      const logo2MaxW = 68;
+      const logo2MaxH = 38;
 
-if (logo2Img) {
-  ctx.drawImage(
-    logo2Img,
-    logoRightX - topLogoW - 28,
-    (headerTop)-16,
-    topLogoW+20,
-    topLogoH+8
-  );
-}
+      const ratio2 = Math.min(
+        logo2MaxW / logo2Img.naturalWidth,
+        logo2MaxH / logo2Img.naturalHeight
+      );
 
-if (logoImg) {
-  ctx.drawImage(
-    logoImg,
-    logoRightX - bottomLogoW,
-    (headerTop + topLogoH + logoGap)-24,
-    bottomLogoW,
-    bottomLogoH
-  );
-}
+      const logo2W = logo2Img.naturalWidth * ratio2;
+      const logo2H = logo2Img.naturalHeight * ratio2;
+
+      ctx.drawImage(
+        logo2Img,
+        currentRight - logo2W,
+        headerTop,
+        logo2W,
+        logo2H
+      );
+    }
 
     drawLine(contentX, headerBottom, contentRight, headerBottom, "#E4DED4");
 
@@ -581,7 +569,7 @@ ctx.restore();
     /*
       Sector pill.
     */
-    const pillText = (cfg.label || sector).toUpperCase();
+    const pillText = sector.toUpperCase();
 
     ctx.save();
     ctx.font = font(700, 10);
