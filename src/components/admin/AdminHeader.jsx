@@ -53,15 +53,15 @@ export default function AdminHeader() {
             
             (
               <img
-              src="/logonl.png"           
+              src="/logo.png"           
               alt="Logo"
               style={{
                 position: "absolute",
-                top: "21%",
-                left: "24%",
+                top: "28%",
+                left: "30%",
                 transform: "translate(-50%, -50%)",
-                height: "115px",
-                width: "69px",
+                height: "95px",
+                width: "106px",
                 opacity: 0.89,
                 zIndex: 0,
                 pointerEvents: "none",
