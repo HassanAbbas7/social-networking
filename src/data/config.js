@@ -262,7 +262,7 @@ profileScreen: {
     label: "Nederlands",
     shortLabel: "NL",
     leaderboard: {
-      brand: "Building Ecosystems",
+      brand: "IAMD Symposium",
       liveFeed: "Live connectiefeed",
       title: "Top Connectors",
       loading: "Live leaderboard laden...",
@@ -331,7 +331,7 @@ profileScreen: {
   failedZip: "Badge-ZIP genereren mislukt.",
 },
 homePage: {
-  title: "Building Ecosystems",
+  title: "IAMD Symposium",
   subtitle: "Kies waar je naartoe wilt",
   screen: "Scherm",
   leaderboard: "Leaderboard",
@@ -444,7 +444,7 @@ adminHeader: {
   expand: "Uitklappen",
   collapse: "Inklappen",
 
-  brand: "Building Ecosystems",
+  brand: "IAMD Symposium",
   title: "Adminpaneel",
   description: "Beheer deelnemers, uploads en QR-records",
 
