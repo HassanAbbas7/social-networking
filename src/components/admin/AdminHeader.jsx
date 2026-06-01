@@ -35,15 +35,31 @@ export default function AdminHeader() {
       {!collapsed && (
         <>
           <div className="relative text-center">
-            <img
-              src="/logo.png"
+            {/* <img
+              src="/logonl.png"            MINISTRY OF DEFENSE LOGO
               alt="Logo"
               style={{
                 position: "absolute",
-                top: "25%",
-                left: "23%",
+                top: "21%",
+                left: "24%",
                 transform: "translate(-50%, -50%)",
-                height: "69px",
+                height: "115px",
+                width: "69px",
+                opacity: 0.89,
+                zIndex: 0,
+                pointerEvents: "none",
+              }}
+            /> */}
+            <img
+              src="/logo.svg"
+              alt="Logo"
+              style={{
+                position: "absolute",
+                top: "23%",
+                left: "24%",
+                transform: "translate(-50%, -50%)",
+                height: "115px",
+                width: "135px",
                 opacity: 0.89,
                 zIndex: 0,
                 pointerEvents: "none",
