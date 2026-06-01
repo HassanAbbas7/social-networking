@@ -8,6 +8,7 @@ import {
   sectorOptionsNl,
   getTranslations,
   normalizeLanguage,
+  TABLE_NAME
 } from "../../data/config";
 import { createClient } from "@supabase/supabase-js";
 import { saveAs } from "file-saver";
@@ -199,8 +200,8 @@ const getPlaceholder = (column) => {
 
                     const matchedCountry = countryOptions.find(
                       (country) =>
-                        country.name.toLowerCase() === value.toLowerCase() ||
-                        country.code.toLowerCase() === value.toLowerCase()
+                        country.name.toLowerCase() === value.toLowerCase()
+                        // country.code.toLowerCase() === value.toLowerCase()
                     );
 
                     handleChange(

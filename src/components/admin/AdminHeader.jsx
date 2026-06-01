@@ -35,8 +35,8 @@ export default function AdminHeader() {
       {!collapsed && (
         <>
           <div className="relative text-center">
-            {/* <img
-              src="/logonl.png"            MINISTRY OF DEFENSE LOGO
+            {language==="nl"? (<img
+              src="/logonl.png"           
               alt="Logo"
               style={{
                 position: "absolute",
@@ -49,22 +49,26 @@ export default function AdminHeader() {
                 zIndex: 0,
                 pointerEvents: "none",
               }}
-            /> */}
-            <img
-              src="/logo.svg"
+            />): 
+            
+            (
+              <img
+              src="/logo.png"
               alt="Logo"
               style={{
                 position: "absolute",
-                top: "23%",
-                left: "24%",
+                top: "25%",
+                left: "23%",
                 transform: "translate(-50%, -50%)",
-                height: "115px",
-                width: "135px",
+                height: "69px",
                 opacity: 0.89,
                 zIndex: 0,
                 pointerEvents: "none",
               }}
             />
+
+            )
+            }
 
             <div style={{ position: "relative", zIndex: 1 }}>
               <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">
