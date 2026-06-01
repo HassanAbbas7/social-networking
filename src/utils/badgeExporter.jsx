@@ -160,7 +160,7 @@ export async function createBadgePng(profile) {
 
       const value = String(text || "");
 
-      if (false) {
+      if (letterSpacing > 0) {
         let currentX = x;
 
         for (const char of value) {
@@ -328,7 +328,8 @@ function drawCoverImage(img) {
 
 if (bgImg) drawCoverImage(bgImg);
 else {
-  ctx.fillStyle = "#F2F5F8";
+  // ctx.fillStyle = "#F2F5F8"; lighter
+  ctx.fillStyle = "#E3ECF8";
   ctx.fillRect(0, 0, W, H);
 }
 
@@ -373,7 +374,7 @@ else {
     */
     const lanyardH = 52;
     // drawLine(contentX, lanyardH, contentRight, lanyardH, "#DDD9CF", true);
-    drawLine(contentX, lanyardH, contentRight, lanyardH, "#154273", true);
+    drawLine(contentX, lanyardH, contentRight, lanyardH, "#BACADF", true);
 
     ctx.save();
     ctx.beginPath();
@@ -466,7 +467,7 @@ if (logoImg) {
 }
 
     // drawLine(contentX, headerBottom, contentRight, headerBottom, "#E4DED4");
-    drawLine(contentX, headerBottom, contentRight, headerBottom, "#154273");
+    drawLine(contentX, headerBottom, contentRight, headerBottom, "#BACADF");
 
     /*
       Name section.
@@ -518,7 +519,7 @@ ctx.restore();
     const nameDividerY = 260;
     const nameGradient = ctx.createLinearGradient(contentX, 0, contentRight, 0);
     // nameGradient.addColorStop(0, "#E0DBD0");
-    nameGradient.addColorStop(0, "#154273");
+    nameGradient.addColorStop(0, "#BACADF");
     nameGradient.addColorStop(0.8, "rgba(224,219,208,0)");
     ctx.fillStyle = nameGradient;
     ctx.fillRect(contentX, nameDividerY, contentW, 1);
@@ -559,7 +560,7 @@ ctx.restore();
       const footerTop = qrBottom + footerGap;
 
     // drawLine(contentX, footerTop, contentRight, footerTop, "#E4DED4");
-    drawLine(contentX, footerTop, contentRight, footerTop, "#154273");
+    drawLine(contentX, footerTop, contentRight, footerTop, "#BACADF");
 
     /*
       Country flag box.
