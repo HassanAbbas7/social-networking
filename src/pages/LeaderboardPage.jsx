@@ -922,7 +922,7 @@ export default function Leaderboard() {
                 letterSpacing: "0.1em",
               }}
             >
-              NLMTD
+              NIDV
             </span>
           </div>
         </div>
