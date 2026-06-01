@@ -256,11 +256,12 @@ export async function createBadgePng(profile) {
 }
 
     function drawBadgeShadow() {
+      // return;
       ctx.save();
       ctx.shadowColor = "rgba(0, 0, 0, 0.14)";
       ctx.shadowBlur = 24;
       ctx.shadowOffsetY = 10;
-      fillRoundedRect(0, 0, W, H, 10, "#F8F7F4");
+      fillRoundedRect(0, 0, W, H, 10, "#F2F5F8");  //"#F8F7F4"
       ctx.restore();
     }
 
@@ -271,8 +272,8 @@ export async function createBadgePng(profile) {
   ctx.save();
 
 // ctx.fillStyle = "rgba(9, 156, 248, 0.16)"; // blue with low opacity overlay
-ctx.fillRect(0, 0, W, H);
-ctx.restore();
+// ctx.fillRect(0, 0, W, H);
+// ctx.restore();
 
 
   ctx.fillStyle = "#111111";
@@ -327,7 +328,7 @@ function drawCoverImage(img) {
 
 if (bgImg) drawCoverImage(bgImg);
 else {
-  ctx.fillStyle = "#F8F7F4";
+  ctx.fillStyle = "#F2F5F8";
   ctx.fillRect(0, 0, W, H);
 }
 
@@ -371,7 +372,8 @@ else {
       Lanyard zone.
     */
     const lanyardH = 52;
-    drawLine(contentX, lanyardH, contentRight, lanyardH, "#DDD9CF", true);
+    // drawLine(contentX, lanyardH, contentRight, lanyardH, "#DDD9CF", true);
+    drawLine(contentX, lanyardH, contentRight, lanyardH, "#154273", true);
 
     ctx.save();
     ctx.beginPath();
@@ -463,7 +465,8 @@ if (logoImg) {
   );
 }
 
-    drawLine(contentX, headerBottom, contentRight, headerBottom, "#E4DED4");
+    // drawLine(contentX, headerBottom, contentRight, headerBottom, "#E4DED4");
+    drawLine(contentX, headerBottom, contentRight, headerBottom, "#154273");
 
     /*
       Name section.
@@ -514,7 +517,8 @@ drawText(companyText, currentX, detailsY, {
 ctx.restore();
     const nameDividerY = 260;
     const nameGradient = ctx.createLinearGradient(contentX, 0, contentRight, 0);
-    nameGradient.addColorStop(0, "#E0DBD0");
+    // nameGradient.addColorStop(0, "#E0DBD0");
+    nameGradient.addColorStop(0, "#154273");
     nameGradient.addColorStop(0.8, "rgba(224,219,208,0)");
     ctx.fillStyle = nameGradient;
     ctx.fillRect(contentX, nameDividerY, contentW, 1);
@@ -554,7 +558,8 @@ ctx.restore();
       const footerGap = 18; // adjust for more/less space
       const footerTop = qrBottom + footerGap;
 
-    drawLine(contentX, footerTop, contentRight, footerTop, "#E4DED4");
+    // drawLine(contentX, footerTop, contentRight, footerTop, "#E4DED4");
+    drawLine(contentX, footerTop, contentRight, footerTop, "#154273");
 
     /*
       Country flag box.
