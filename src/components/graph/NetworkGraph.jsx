@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import { buildGraphData } from "../../lib/graphHelpers";
+import { useParams } from "react-router-dom";
+import { getTranslations, normalizeLanguage } from "../../data/config";
 import {
   DEVELOPER_MODE,
   DEFAULT_SECTOR_COLORS_NL,
@@ -73,6 +75,11 @@ function NetworkGraph({
   const nodeByIdRef = useRef(new Map());
   const previousLinkKeysRef = useRef(new Set());
   const initializedRef = useRef(false);
+
+  const { lang } = useParams();
+
+  const language = normalizeLanguage(lang);
+  const t = getTranslations(language).screenPage;
 
   const dimensionsRef = useRef({
     width: 1200,
@@ -152,6 +159,37 @@ function NetworkGraph({
       window.removeEventListener("resize", updateDimensions);
     };
   }, []);
+
+
+  const translateRole = (role) => {
+  const dict = {
+    Anchor: "Anker",
+    Connector: "Connector",
+    Explorer: "Verkenner",
+    Catalyst: "Katalysator",
+    Builder: "Bouwer",
+  };
+
+  if (!role) return "";
+
+  const normalizedRole = String(role).trim();
+
+  // English → Dutch
+  if (language === "nl") {
+    return dict[normalizedRole] || normalizedRole;
+  }
+
+  // Dutch → English
+  if (language === "en") {
+    const reversedDict = Object.fromEntries(
+      Object.entries(dict).map(([english, dutch]) => [dutch, english])
+    );
+
+    return reversedDict[normalizedRole] || normalizedRole;
+  }
+
+  return normalizedRole;
+};
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -735,7 +773,7 @@ function NetworkGraph({
               const sectorLabel = getSectorLabel(d.sector, sectorConfig);
 
               if (revealRoles && d.role) {
-                return `${d.role} · ${sectorLabel}`;
+                return `${translateRole(d.role)} · ${sectorLabel}`;
               }
 
               return sectorLabel;
@@ -772,7 +810,7 @@ function NetworkGraph({
               const sectorLabel = getSectorLabel(d.sector, sectorConfig);
 
               if (revealRoles && d.role) {
-                return `${d.role} · ${sectorLabel}`;
+                return `${translateRole(d.role)} · ${sectorLabel}`;
               }
 
               return sectorLabel;

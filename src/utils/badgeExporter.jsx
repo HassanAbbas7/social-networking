@@ -160,7 +160,7 @@ export async function createBadgePng(profile) {
 
       const value = String(text || "");
 
-      if (letterSpacing > 0) {
+      if (false) {
         let currentX = x;
 
         for (const char of value) {
@@ -590,7 +590,7 @@ ctx.restore();
 
     ctx.save();
     ctx.font = font(700, 10);
-    const pillTextW = ctx.measureText(pillText).width;
+    const pillTextW = ctx.measureText(pillText).width + 8;
     ctx.restore();
 
     const pillH = 28;

@@ -262,9 +262,9 @@ export const LANGUAGE_CONFIG = {
       reset: "Reset",
       attendees: "Attendees",
       connections: "Connections",
-      crosssector: "Cross-sector",
-      clustersformed: "clusters formed",
-      showsectors: "Show sectors"
+      crossSector: "Cross-sector",
+      clustersFormed: "clusters formed",
+      showSectors: "Show sectors"
     }
   },
 
@@ -280,7 +280,7 @@ export const LANGUAGE_CONFIG = {
       unknownAttendee: "Onbekende deelnemer",
       emptyRankLine1: "Nog niet genoeg connecties,",
       emptyRankLine2: "blijf verbinden",
-      crossSector: "Cross-sector",
+      crossSector: "Sectoroverschrijdend",
       connectionTarget: "Connectiedoel",
       explorerMaxSuffix: "/5",
       ranks: ["1E", "2E", "3E"],
@@ -292,13 +292,13 @@ export const LANGUAGE_CONFIG = {
         },
         connector: {
           name: "Connector",
-          logic: "Top 3 op basis van cross-sector %",
+          logic: "Top 3 op basis van Sectoroverschrijdend %",
           description: "Jij verbond wat nog niet vanzelf verbonden was",
         },
         explorer: {
           name: "Verkenner",
           logic: "Meeste sectoren bereikt van de 5",
-          description: "Jij ging waar anderen nog niet gingen — en nam mensen mee terug",
+          description: "Jij ging waar anderen nog niet gingen, en nam mensen mee terug",
         },
         catalyst: {
           name: "Katalysator",
@@ -589,12 +589,12 @@ export const SECTOR_CONFIG_NL = {
   },
   kennisinstellingen: {
     label: "Kennisinstellingen",
-    color: "#D85A30",
+    color: "#7A7A78",
     light: "#FCEEE9",
   },
   overheid: {
     label: "Overheid",
-    color: "#7A7A78",
+    color: "#D85A30",
     light: "#F2F2F1",
   },
 };
@@ -603,8 +603,8 @@ export const DEFAULT_SECTOR_COLORS_NL = {
   consultancy: "#7F77DD",
   defensie: "#378ADD",
   bedrijven: "#1D9E75",
-  kennisinstellingen: "#D85A30",
-  overheid: "#888780",
+  kennisinstellingen: "#7A7A78",
+  overheid: "#D85A30",
 };
 
 export const countryOptions = [

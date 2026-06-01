@@ -312,7 +312,7 @@ function ScreenPage() {
         {isGraphFullscreen && (
           <div className="absolute bottom-6 left-6 z-10 flex items-center gap-5 rounded-2xl bg-white/80 backdrop-blur-sm border border-black/[0.04] px-5 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             {revealRoles
-              ? Object.entries(ROLE_COLORS).map(([role, color]) => (
+              ? Object.entries(language ==="nl"?ROLE_COLORS_NL:ROLE_COLORS).map(([role, color]) => (
                 <LegendDot key={role} color={color} label={role} />
               ))
               : SECTOR_LEGEND_ITEMS.map((sector) => (
@@ -368,7 +368,7 @@ function ScreenPage() {
           <div className="space-y-3">
             {revealRoles ? (
               <div className="flex flex-wrap items-center gap-4 text-xs text-[#4f4f4a]">
-                {Object.entries(ROLE_COLORS).map(([role, color]) => (
+                {Object.entries(language==="nl"?ROLE_COLORS_NL:ROLE_COLORS).map(([role, color]) => (
                   <LegendDot key={role} color={color} label={role} />
                 ))}
               </div>
