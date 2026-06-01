@@ -256,6 +256,16 @@ export const LANGUAGE_CONFIG = {
       connecting: "Connecting...",
       connectWith: "Connect with {{name}}",
     },
+    screenPage: {
+      toggle: "Toggle",
+      revealRoles: "Reveal Roles",
+      reset: "Reset",
+      attendees: "Attendees",
+      connections: "Connections",
+      crosssector: "Cross-sector",
+      clustersformed: "clusters formed",
+      showsectors: "Show sectors"
+    }
   },
 
   nl: {
@@ -502,6 +512,16 @@ export const LANGUAGE_CONFIG = {
       connecting: "Verbinden...",
       connectWith: "Verbinden met {{name}}",
     },
+    screenPage: {
+      toggle: "Schakelen",
+      revealRoles: "Rollen tonen",
+      reset: "Resetten",
+      attendees: "Deelnemers",
+      connections: "Connecties",
+      crossSector: "Sectoroverschrijdend",
+      clustersFormed: "Gevormde clusters",
+      showSectors: "Sectoren tonen"
+    }
   },
 };
 

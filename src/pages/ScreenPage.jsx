@@ -6,7 +6,10 @@ import {
   DEFAULT_SECTOR_COLORS_NL,
   SECTOR_CONFIG_NL,
 } from "../data/config";
+import { useParams } from "react-router-dom";
 import { computeRoleStats, mergeStatsWithAttendees } from "../utils/roleUtils";
+import { getTranslations, normalizeLanguage } from "../data/config";
+
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -18,13 +21,7 @@ const CONNECTIONS_TABLE = "connections";
 const SECTOR_COLORS = DEFAULT_SECTOR_COLORS_NL;
 const SECTOR_CONFIG = SECTOR_CONFIG_NL;
 
-const ROLE_COLORS = {
-  Anchor: "#EF9F27",
-  Connector: "#1D9E75",
-  Explorer: "#7F77DD",
-  Catalyst: "#D85A30",
-  Builder: "#378ADD",
-};
+
 
 const SECTOR_LEGEND_ITEMS = Object.entries(SECTOR_CONFIG).map(
   ([key, config]) => ({
@@ -44,6 +41,29 @@ function ScreenPage() {
   const [layoutVersion, setLayoutVersion] = useState(0);
   const [isGraphFullscreen, setIsGraphFullscreen] = useState(false);
   const [computedRoleById, setComputedRoleById] = useState(null);
+
+
+  const { lang } = useParams();
+
+  const language = normalizeLanguage(lang);
+  const t = getTranslations(language).screenPage;
+
+  const ROLE_COLORS = {
+    Anchor: "#EF9F27",
+    Connector: "#1D9E75",
+    Explorer: "#7F77DD",
+    Catalyst: "#D85A30",
+    Builder: "#378ADD",
+  };
+
+  const ROLE_COLORS_NL =
+  {
+    Anker: "#EF9F27",
+    Connector: "#1D9E75",
+    Verkenner: "#7F77DD",
+    Katalysator: "#D85A30",
+    Bouwer: "#378ADD"
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -293,15 +313,15 @@ function ScreenPage() {
           <div className="absolute bottom-6 left-6 z-10 flex items-center gap-5 rounded-2xl bg-white/80 backdrop-blur-sm border border-black/[0.04] px-5 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             {revealRoles
               ? Object.entries(ROLE_COLORS).map(([role, color]) => (
-                  <LegendDot key={role} color={color} label={role} />
-                ))
+                <LegendDot key={role} color={color} label={role} />
+              ))
               : SECTOR_LEGEND_ITEMS.map((sector) => (
-                  <LegendDot
-                    key={sector.key}
-                    color={sector.color}
-                    label={sector.label}
-                  />
-                ))}
+                <LegendDot
+                  key={sector.key}
+                  color={sector.color}
+                  label={sector.label}
+                />
+              ))}
           </div>
         )}
       </section>
@@ -314,35 +334,35 @@ function ScreenPage() {
                 className="rounded-xl border border-black/[0.06] bg-white/90 backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#3A3630] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-white transition-colors"
                 onClick={() => setShowNames((value) => !value)}
               >
-                Toggle
+                {t.toggle}
               </button>
 
               <button
                 className="rounded-xl border border-[#008080]/20 bg-[#008080]/[0.06] backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#008080] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-[#008080]/10 transition-colors"
                 onClick={handleRevealRoles}
               >
-                {revealRoles ? "Show sectors ↗" : "Reveal roles ↗"}
+                {revealRoles ? t.showSectors : t.revealRoles}
               </button>
 
               <button
                 className="rounded-xl border border-black/[0.06] bg-white/90 backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-[#3A3630] shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:bg-white transition-colors"
                 onClick={() => setLayoutVersion((value) => value + 1)}
               >
-                Reset
+                {t.reset}
               </button>
             </div>
 
             <p className="text-sm text-[#4f4f4a]">
-              {visibleAttendees.length} attendees ·{" "}
-              {visibleConnections.length} connections
+              {visibleAttendees.length} {t.attendees} ·{" "}
+              {visibleConnections.length} {t.connections}
             </p>
           </div>
 
           <div className="grid grid-cols-4 gap-2 mb-3">
-            <Stat label="Attendees" value={visibleAttendees.length} />
-            <Stat label="Connections" value={visibleConnections.length} />
-            <Stat label="Cross-sector" value={crossSectorCount} />
-            <Stat label="Clusters formed" value={clustersFormedCount} />
+            <Stat label={t.attendees} value={visibleAttendees.length} />
+            <Stat label={t.connections} value={visibleConnections.length} />
+            <Stat label={t.crossSector} value={crossSectorCount} />
+            <Stat label={t.clustersFormed} value={clustersFormedCount} />
           </div>
 
           <div className="space-y-3">

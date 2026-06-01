@@ -409,7 +409,7 @@ else {
       letterSpacing: 1.4,
     });
 
-   const logo2Img = await loadImage("/logonl.png");
+   const logo2Img = await loadImage("/logonltr.png");
 const logoImg = await loadImage("/logo.svg");
 
 const logoMaxW = 68;
@@ -448,8 +448,8 @@ const logoRightX = contentRight;
 if (logo2Img) {
   ctx.drawImage(
     logo2Img,
-    logoRightX - topLogoW - 28,
-    (headerTop)-16,
+    (logoRightX - bottomLogoW)-12,
+    (headerTop)-10,
     topLogoW+20,
     topLogoH+8
   );
@@ -459,7 +459,7 @@ if (logoImg) {
   ctx.drawImage(
     logoImg,
     logoRightX - bottomLogoW,
-    (headerTop + topLogoH + logoGap)-24,
+    (headerTop + topLogoH + logoGap)-10,
     bottomLogoW,
     bottomLogoH
   );

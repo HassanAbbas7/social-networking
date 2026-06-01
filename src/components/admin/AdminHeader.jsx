@@ -36,15 +36,15 @@ export default function AdminHeader() {
         <>
           <div className="relative text-center">
             {language==="nl"? (<img
-              src="/logonl.png"           
+              src="/logonltr.png"           
               alt="Logo"
               style={{
                 position: "absolute",
                 top: "21%",
-                left: "24%",
+                left: "18%",
                 transform: "translate(-50%, -50%)",
                 height: "115px",
-                width: "69px",
+                width: "285px",
                 opacity: 0.89,
                 zIndex: 0,
                 pointerEvents: "none",
