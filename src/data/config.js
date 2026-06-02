@@ -562,14 +562,7 @@ export const SECTOR_CONFIG = {
 };
 
 
-export const DEFAULT_SECTOR_COLORS = {
-  tech: "#378ADD",
-  consultancy: "#7F77DD",
-  health: "#1D9E75",
-  energy: "#EF9F27",
-  public: "#D85A30",
-  industry: "#888780",
-};
+
 
 export const SECTOR_CONFIG_NL = {
   consultancy: {
@@ -589,7 +582,7 @@ export const SECTOR_CONFIG_NL = {
   },
   kennisinstellingen: {
     label: "Kennisinstellingen",
-    color: "#7A7A78",
+    color: "#EF9F27",
     light: "#FCEEE9",
   },
   overheid: {
@@ -598,12 +591,19 @@ export const SECTOR_CONFIG_NL = {
     light: "#F2F2F1",
   },
 };
-
+export const DEFAULT_SECTOR_COLORS = {
+  tech: "#378ADD",
+  consultancy: "#7F77DD",
+  health: "#1D9E75",
+  energy: "#EF9F27",
+  public: "#D85A30",
+  industry: "#888780",
+};
 export const DEFAULT_SECTOR_COLORS_NL = {
   consultancy: "#7F77DD",
   defensie: "#378ADD",
   bedrijven: "#1D9E75",
-  kennisinstellingen: "#7A7A78",
+  kennisinstellingen: "#EF9F27",
   overheid: "#D85A30",
 };
 
