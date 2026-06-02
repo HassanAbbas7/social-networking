@@ -286,7 +286,7 @@ export const LANGUAGE_CONFIG = {
       ranks: ["1E", "2E", "3E"],
       roles: {
         anchor: {
-          name: "Anker",
+          name: "Kapstok",
           logic: "Top 15% op basis van totale connecties",
           description: "Jij gaf het ecosysteem houvast — iedereen kwam via jou samen",
         },
@@ -298,7 +298,7 @@ export const LANGUAGE_CONFIG = {
         explorer: {
           name: "Verkenner",
           logic: "Meeste sectoren bereikt van de 5",
-          description: "Jij ging waar anderen nog niet gingen, en nam mensen mee terug",
+          description: "⁠Jij ging waar andere niet gingen.",
         },
         catalyst: {
           name: "Katalysator",
@@ -308,7 +308,7 @@ export const LANGUAGE_CONFIG = {
         builder: {
           name: "Bouwer",
           logic: "De brug — consistent",
-          description: "Jij bleef zichtbaar en maakte het echt",
+          description: "Jij bleef zichtbaar en bouwde het ecosysteem mee",
         },
       },
     },

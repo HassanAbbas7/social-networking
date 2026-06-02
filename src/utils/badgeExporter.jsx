@@ -411,7 +411,7 @@ else {
     });
 
    const logo2Img = await loadImage("/logonltr.png");
-const logoImg = await loadImage("/logo.svg");
+    const logoImg = await loadImage("/logo.svg");
 
 const logoMaxW = 68;
 const logoMaxH = 38;
@@ -450,7 +450,7 @@ if (logo2Img) {
   ctx.drawImage(
     logo2Img,
     (logoRightX - bottomLogoW)-12,
-    (headerTop)-10,
+    (headerTop)-8,
     topLogoW+20,
     topLogoH+8
   );
@@ -459,8 +459,8 @@ if (logo2Img) {
 if (logoImg) {
   ctx.drawImage(
     logoImg,
-    logoRightX - bottomLogoW,
-    (headerTop + topLogoH + logoGap)-10,
+    (logoRightX - bottomLogoW) - 11,
+    (headerTop + topLogoH + logoGap)-2,
     bottomLogoW,
     bottomLogoH
   );

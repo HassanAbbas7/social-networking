@@ -163,7 +163,7 @@ function NetworkGraph({
 
   const translateRole = (role) => {
   const dict = {
-    Anchor: "Anker",
+    Anchor: "Kapstok",
     Connector: "Connector",
     Explorer: "Verkenner",
     Catalyst: "Katalysator",

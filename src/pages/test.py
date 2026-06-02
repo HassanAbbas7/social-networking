@@ -385,12 +385,15 @@ if __name__ == "__main__":
     # exit(0)
 
     attendees = db.list_attendees()
+    connector_attendees = attendees[:6]
     for _ in range(150):
 
         # if len(attendees) < 2:
         #     break
 
-        scanner, scanned = sample(attendees, 2)
+        scanned = sample(attendees, 2)[0]
+
+        scanner = choice(connector_attendees)
 
         try:
             connection = db.add_connection(

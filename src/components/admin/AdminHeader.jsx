@@ -40,11 +40,11 @@ export default function AdminHeader() {
               alt="Logo"
               style={{
                 position: "absolute",
-                top: "21%",
+                top: "22%",
                 left: "18%",
                 transform: "translate(-50%, -50%)",
                 height: "115px",
-                width: "285px",
+                width: "344px",
                 opacity: 0.89,
                 zIndex: 0,
                 pointerEvents: "none",
