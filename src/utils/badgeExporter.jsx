@@ -160,7 +160,7 @@ export async function createBadgePng(profile) {
 
       const value = String(text || "");
 
-      if (letterSpacing > 0) {
+      if (false) {
         let currentX = x;
 
         for (const char of value) {
