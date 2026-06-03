@@ -75,12 +75,17 @@ const getPlaceholder = (column) => {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    // check if any required fields are empty except for photo_url
-    const missingFields = expectedColumns.filter((col) => !formData[col] && col !== "photo_url");
-    if (missingFields.length > 0) {
-      setStatus(`Upload Failed: Missing required fields: ${missingFields.join(", ")}`);
+    if (!formData.name) {
+      setStatus("Upload Failed: Name is required.");
       return;
     }
+
+    // check if any required fields are empty except for photo_url
+    // const missingFields = expectedColumns.filter((col) => !formData[col] && col !== "photo_url");
+    // if (missingFields.length > 0) {
+    //   setStatus(`Upload Failed: Missing required fields: ${missingFields.join(", ")}`);
+    //   return;
+    // }
 
 
     try {

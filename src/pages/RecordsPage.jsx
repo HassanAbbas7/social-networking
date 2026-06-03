@@ -168,7 +168,7 @@ const matchedCountry = countryOptions.find(
     country.name.toLowerCase() === enteredCountry.toLowerCase()
 );
 
-if (!matchedCountry) {
+if (!matchedCountry && enteredCountry !== "") {
   alert("Please enter a valid country name or country code!");
   return;
 }
