@@ -542,7 +542,7 @@ export const sectorOptions = [
   "Consultancy",
   "Other",
   "Energy & health",
-  "Public execution",
+  "Public",
   "Government",
 ];
 
@@ -557,7 +557,7 @@ export const SECTOR_CONFIG = {
   consultancy: { color: "#7F77DD", light: "#EEEDFA" },
   government: { color: "#1D9E75", light: "#E5F5EF" },
   "energy & health": { color: "#EF9F27", light: "#FDF4E7" },
-  "public execution": { color: "#D85A30", light: "#FCEEE9" },
+  "public": { color: "#D85A30", light: "#FCEEE9" },
   other: { color: "#7A7A78", light: "#F2F2F1" },
 
 };
@@ -597,7 +597,7 @@ export const DEFAULT_SECTOR_COLORS = {
   consultancy: "#7F77DD",
   government: "#1D9E75",
   "energy & health": "#EF9F27",
-  "public execution": "#D85A30",
+  "public": "#D85A30",
   other: "#888780",
 };
 export const DEFAULT_SECTOR_COLORS_NL = {
