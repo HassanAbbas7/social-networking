@@ -79,6 +79,9 @@ export async function createBadgePng(profile) {
     }
 
     function countryFromCode(code) {
+      if (!code) {
+        return "";
+      }
       const c = String(code || "").trim().toLowerCase();
 
       if (code.length > 3){
@@ -169,7 +172,8 @@ export async function createBadgePng(profile) {
           currentX += ctx.measureText(char).width + letterSpacing;
         }
       } else if (maxWidth) {
-        drawFittedText(value, x, y, maxWidth, size, weight);
+        // drawFittedText(value, x, y, maxWidth, size, weight);
+        ctx.fillText(value, x, y);
       } else {
         ctx.fillText(value, x, y);
       }
@@ -396,6 +400,9 @@ export async function createBadgePng(profile) {
       maxWidth: contentW * 0.5,
     });
 
+    let preserveX = currentX;
+
+
     ctx.font = font(700, 16);
     currentX += Math.min(ctx.measureText(lastNameText).width, contentW * 0.5) + 8;
 
@@ -410,7 +417,7 @@ export async function createBadgePng(profile) {
     currentX += 30;
 
     // Company – lighter white
-    drawText(companyText, currentX+20, detailsY, {
+    drawText(companyText, preserveX, detailsY + 30, {
       size: 25,
       weight: 400,
       color: "rgba(255,255,255,0.75)",
