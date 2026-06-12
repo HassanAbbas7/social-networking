@@ -540,10 +540,10 @@ export function getTranslations(language) {
 export const sectorOptions = [
   "Tech",
   "Consultancy",
-  "Health",
-  "Energy",
-  "Public",
-  "Industry",
+  "Other",
+  "Energy & health",
+  "Public execution",
+  "Government",
 ];
 
 export const sectorOptionsNl = ["Consultancy",
@@ -555,10 +555,11 @@ export const sectorOptionsNl = ["Consultancy",
 export const SECTOR_CONFIG = {
   tech: { color: "#378ADD", light: "#EBF4FF" },
   consultancy: { color: "#7F77DD", light: "#EEEDFA" },
-  health: { color: "#1D9E75", light: "#E5F5EF" },
-  energy: { color: "#EF9F27", light: "#FDF4E7" },
-  "public": { color: "#D85A30", light: "#FCEEE9" },
-  industry: { color: "#7A7A78", light: "#F2F2F1" },
+  government: { color: "#1D9E75", light: "#E5F5EF" },
+  "energy & health": { color: "#EF9F27", light: "#FDF4E7" },
+  "public execution": { color: "#D85A30", light: "#FCEEE9" },
+  other: { color: "#7A7A78", light: "#F2F2F1" },
+
 };
 
 
@@ -594,10 +595,10 @@ export const SECTOR_CONFIG_NL = {
 export const DEFAULT_SECTOR_COLORS = {
   tech: "#378ADD",
   consultancy: "#7F77DD",
-  health: "#1D9E75",
-  energy: "#EF9F27",
-  public: "#D85A30",
-  industry: "#888780",
+  government: "#1D9E75",
+  "energy & health": "#EF9F27",
+  "public execution": "#D85A30",
+  other: "#888780",
 };
 export const DEFAULT_SECTOR_COLORS_NL = {
   consultancy: "#7F77DD",
