@@ -916,7 +916,7 @@ export default function Leaderboard() {
 
             <span
               style={{
-                fontSize: 16,
+                fontSize: 27,
                 fontWeight: 800,
                 color: "#1D9E75",
                 letterSpacing: "0.1em",
