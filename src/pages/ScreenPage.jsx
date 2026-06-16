@@ -4,7 +4,9 @@ import NetworkGraph from "../components/graph/NetworkGraph";
 import {
   TABLE_NAME,
   DEFAULT_SECTOR_COLORS_NL,
+  DEFAULT_SECTOR_COLORS,
   SECTOR_CONFIG_NL,
+  SECTOR_CONFIG_EN
 } from "../data/config";
 import { useParams } from "react-router-dom";
 import { computeRoleStats, mergeStatsWithAttendees } from "../utils/roleUtils";
@@ -18,8 +20,8 @@ const supabase = createClient(
 
 const CONNECTIONS_TABLE = "connections";
 
-const SECTOR_COLORS = DEFAULT_SECTOR_COLORS_NL;
-const SECTOR_CONFIG = SECTOR_CONFIG_NL;
+const SECTOR_COLORS = DEFAULT_SECTOR_COLORS;
+const SECTOR_CONFIG = SECTOR_CONFIG_EN;
 
 
 

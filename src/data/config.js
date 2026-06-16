@@ -592,6 +592,40 @@ export const SECTOR_CONFIG_NL = {
     light: "#F2F2F1",
   },
 };
+
+export const SECTOR_CONFIG_EN = {
+  tech: {
+    label: "Tech",
+    color: "#378ADD",
+    light: "#EBF4FF",
+  },
+  consultancy: {
+    label: "Consultancy",
+    color: "#7F77DD",
+    light: "#EEEDFA",
+  },
+  government: {
+    label: "Government",
+    color: "#1D9E75",
+    light: "#E5F5EF",
+  },
+  "energy & health": {
+    label: "Energy & Health",
+    color: "#EF9F27",
+    light: "#FCEEE9",
+  },
+  public: {
+    label: "Public",
+    color: "#D85A30",
+    light: "#F2F2F1",
+  },
+  other: {
+    label: "Other",
+    color: "#888780",
+    light: "#F5F5F4",
+  },
+};
+
 export const DEFAULT_SECTOR_COLORS = {
   tech: "#378ADD",
   consultancy: "#7F77DD",
