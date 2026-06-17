@@ -169,7 +169,8 @@ export async function createBadgePng(profile) {
           currentX += ctx.measureText(char).width + letterSpacing;
         }
       } else if (maxWidth) {
-        drawFittedText(value, x, y, maxWidth, size, weight);
+        // drawFittedText(value, x, y, maxWidth, size, weight);
+        ctx.fillText(value, x, y);
       } else {
         ctx.fillText(value, x, y);
       }
@@ -267,7 +268,7 @@ export async function createBadgePng(profile) {
 
     function drawWrappedFirstName(text, x, y, maxWidth) {
   const value = String(text || "");
-  let size = 74;
+  let size = 70;
 
   ctx.save();
   ctx.fillStyle = "#111111";
@@ -387,7 +388,7 @@ else {
     const headerBottom = 122;
 
     drawText("Ecosystem Demo Day", contentX, headerTop + 17, {
-      size: 17,
+      size: 16,
       weight: 700,
       color: "#161412",
       baseline: "alphabetic",
@@ -395,7 +396,7 @@ else {
     });
 
     drawText("Future proof AI", contentX, headerTop + 37, {
-      size: 17,
+      size: 16,
       weight: 700,
       color: "#161412",
       baseline: "alphabetic",
@@ -457,7 +458,7 @@ else {
       Name section.
     */
     const centerX = contentX + contentW / 2;
-    drawWrappedFirstName(attendee.firstName, contentX, 200, contentW);
+    drawWrappedFirstName(attendee.firstName, contentX, 190, contentW);
 
     const detailsY = 230;
 
@@ -469,7 +470,7 @@ const companyText = String(attendee.company || "");
 let currentX = contentX+5;
 
 // Last name
-drawText(lastNameText, currentX, detailsY-5, {
+drawText(lastNameText, currentX, detailsY-10, {
   size: 20,
   weight: 700,
   color: "#242220",
