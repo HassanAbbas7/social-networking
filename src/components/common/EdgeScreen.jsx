@@ -22,7 +22,7 @@ export default function EdgeScreen({
 
   const [selected, setSelected] = useState("");
 
-  const cfg = SECTOR_CONFIG[profile?.sector] || SECTOR_CONFIG.consultancy;
+  const cfg = SECTOR_CONFIG[profile?.sector] || SECTOR_CONFIG.other;
 
   function replaceVars(template, values = {}) {
     return String(template || "").replace(/\{\{(\w+)\}\}/g, (_, key) => {
